@@ -1,0 +1,23 @@
+# Plain-Python source of the Adafruit libraries that ship to the board as .mpy.
+#
+# These are NEVER imported on the host. They exist so Pylance has real source to
+# read -- .mpy files are compiled bytecode and are opaque to the editor, so
+# without these every `from adafruit_matrixportal.matrix import Matrix` is a red
+# squiggle and gets no autocomplete.
+#
+# Installed with --no-deps by tools\setup.ps1: their declared dependency is
+# Adafruit-Blinka, a large host-side HAL we do not want.
+#
+# Keep this list in step with device-requirements.txt.
+
+adafruit-circuitpython-matrixportal
+adafruit-circuitpython-portalbase
+adafruit-circuitpython-display-text
+adafruit-circuitpython-bitmap-font
+adafruit-circuitpython-lis3dh
+adafruit-circuitpython-esp32spi
+adafruit-circuitpython-requests
+adafruit-circuitpython-minimqtt
+adafruit-circuitpython-neopixel
+adafruit-circuitpython-busdevice
+adafruit-io

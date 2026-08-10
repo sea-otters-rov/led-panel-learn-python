@@ -1,0 +1,13 @@
+# Values here are readable from code with os.getenv("NAME").
+#
+# tools\setup.ps1 copies this file to settings.toml, which is gitignored.
+# Put real network credentials in settings.toml, never in this example and
+# never in code.py.
+#
+# Note: this board is a SAMD51 with an ESP32 co-processor. It has no native
+# WiFi, so CircuitPython will NOT auto-connect from these values and the web
+# workflow is not available -- your own code has to drive the ESP32 over SPI.
+# These are plain strings that your code chooses to use.
+
+WIFI_SSID = "your-network"
+WIFI_PASSWORD = "your-password"

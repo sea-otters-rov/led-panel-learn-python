@@ -1,0 +1,12 @@
+# Host-side tooling. Installed into .venv by tools\setup.ps1.
+
+# Library manager for CircuitPython boards.
+circup==3.0.4
+
+# Type stubs for the built-in modules (board, displayio, digitalio, rgbmatrix...).
+# PIN THIS TO THE FIRMWARE VERSION in firmware\*.uf2 -- the stubs are generated
+# per release, and a mismatch means autocomplete quietly lies to you.
+circuitpython-stubs==10.2.1
+
+# Serial console (python -m serial.tools.miniterm), used by tools\console.ps1.
+pyserial>=3.5

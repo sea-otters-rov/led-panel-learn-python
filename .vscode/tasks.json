@@ -1,0 +1,67 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Board: sync all files",
+      "detail": "Copy everything in device\\ to the CIRCUITPY drive.",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile", "-ExecutionPolicy", "Bypass",
+        "-File", "${workspaceFolder}\\tools\\sync.ps1"
+      ],
+      "problemMatcher": [],
+      "presentation": { "reveal": "silent", "panel": "dedicated" }
+    },
+    {
+      "label": "Board: sync all files (clean)",
+      "detail": "Sync, then DELETE anything on the board that is not in device\\. Use on a fresh board to remove the factory demo.",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile", "-ExecutionPolicy", "Bypass",
+        "-File", "${workspaceFolder}\\tools\\sync.ps1", "-Clean"
+      ],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "Board: serial console",
+      "detail": "miniterm. Ctrl-C breaks to the REPL, Ctrl-D reloads, Ctrl-] quits. Close the Serial Monitor panel first.",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile", "-ExecutionPolicy", "Bypass",
+        "-File", "${workspaceFolder}\\tools\\console.ps1"
+      ],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "focus": true }
+    },
+    {
+      "label": "Board: install libraries into device\\lib",
+      "detail": "Run circup against the local device\\ folder using device-requirements.txt.",
+      "type": "shell",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\circup.exe",
+      "args": [
+        "--path", "${workspaceFolder}\\device",
+        "--board-id", "matrixportal_m4",
+        "--cpy-version", "10.2.1",
+        "install", "-r", "${workspaceFolder}\\device-requirements.txt"
+      ],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "Board: set up this machine",
+      "detail": "First-run setup: extensions, .venv, stubs, libraries.",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile", "-ExecutionPolicy", "Bypass",
+        "-File", "${workspaceFolder}\\tools\\setup.ps1"
+      ],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    }
+  ]
+}
