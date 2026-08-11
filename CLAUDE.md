@@ -132,6 +132,28 @@ Two things that survey turned up, both worth more than the 13 ms:
 `adafruit_display_text` is the largest real library cost at 34.8 ms — still 4%
 of a save, and the lessons need it. There is no import trimming worth doing.
 
+## Colour
+
+There is no `enum` module in CircuitPython — checked on the board, it is absent.
+
+- **`rainbowio.colorwheel(0..255)` is built into the firmware.** 0.1 ms to
+  import, returns a packed `0xRRGGBB` int. Use this for the wheel; importing it
+  from `adafruit_led_animation.color`, which merely re-exports it, costs 18.6 ms
+  instead.
+- **`adafruit_led_animation.color` supplies the names** — `RED`, `CYAN`,
+  `AMBER`, `GOLD`, `JADE`, `OLD_LACE`, `RAINBOW`, plus `calculate_intensity`.
+  25 KB, 18.6 ms.
+- **Its constants are RGB tuples, and that is fine.** `RED` is `(255, 0, 0)`,
+  not `0xFF0000`, which looks wrong for `displayio`. Measured on hardware:
+  `displayio` converts tuples itself, so `Label(color=RED)` lands in the palette
+  as `0xff0000`, byte-identical to passing the int. Do not write conversion
+  helpers for this. The one wrinkle is that `Label.color` returns whatever you
+  set, so a lesson that reads `.color` back gets a tuple, not an int.
+
+Board root is on `sys.path`, so a shared module next to `code.py` — a project
+`colors.py`, say — is importable as `import colors` from inside a lesson folder,
+even though a lesson's own siblings are not. Verified on hardware.
+
 ## Status
 
 Dev environment: done, verified end to end on hardware (2026-08-10).

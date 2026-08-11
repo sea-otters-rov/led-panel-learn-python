@@ -14,3 +14,8 @@ adafruit_display_text
 adafruit_bitmap_font
 adafruit_lis3dh
 neopixel
+
+# Named colour constants (RED, CYAN, AMBER...) plus colorwheel and
+# calculate_intensity. The firmware already has rainbowio.colorwheel built in;
+# this is here for the names.
+adafruit_led_animation
