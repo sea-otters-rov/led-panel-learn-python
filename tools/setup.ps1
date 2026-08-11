@@ -72,7 +72,10 @@ foreach ($ext in @(
     'ms-python.python',
     'ms-python.vscode-pylance',
     'ms-vscode.vscode-serial-monitor',
-    'emeraldwalk.runonsave'
+    'emeraldwalk.runonsave',
+    # Linting. ruff.toml exempts lessons\code.py from F401 -- see the comment
+    # there before turning on fix-on-save, which would delete the launcher.
+    'charliermarsh.ruff'
 )) {
     if ($installed -contains $ext) {
         Ok "$ext (already installed)"

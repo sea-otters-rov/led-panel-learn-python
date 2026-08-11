@@ -73,7 +73,8 @@ half-written file to the board and restart it mid-edit.
 | `lessons\code.py` | The launcher. One import line names the lesson that runs. |
 | `lessons\L00_*\main.py` | One folder per lesson, each with a `main.py`. This is where you work. |
 | `lessons\lib\` | Board libraries, managed by `circup`. Committed, so a board can be rebuilt offline. |
-| `tools\` | `sync.py` (the on-save path), `setup.ps1`, `sync.ps1`, `console.ps1`. |
+| `tools\` | `sync.py` (the on-save path), `setup.ps1`, `sync.ps1`, `console.ps1`, `verify_board.py`. |
+| `ruff.toml` | Lint config. One rule: the launcher's import only looks unused. |
 | `firmware\` | The `.uf2` this project is pinned to. |
 | `.venv\` | Host-side only: `circup`, stubs, library sources for IntelliSense. Never runs on the board. |
 
@@ -113,6 +114,12 @@ lesson has a mistake in it, the traceback names the *lesson* file and line, not
 
 Each lesson is its own folder with a `main.py` inside, so a lesson that needs a
 bitmap, a font, or a second module keeps them together in one place.
+
+**Check the board is working** — Ctrl+Shift+P → *Run Task* → **Board: verify**.
+It forces a reload and prints what the board said, which is the quickest way to
+tell a broken lesson from a broken board. **Stop Monitoring in the Serial Monitor
+panel first** — the port is exclusive, and the task will tell you so if you
+forget.
 
 **Push everything** (after adding a font, bitmap, or new module) —
 Ctrl+Shift+P → *Run Task* → **Board: sync all files**. On-save only copies the

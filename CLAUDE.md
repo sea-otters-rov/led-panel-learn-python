@@ -17,6 +17,12 @@ working *on* the project.
   before adding libraries.
 - **The serial port is exclusive.** Only one program can hold it, so the Serial
   Monitor panel and `tools\console.ps1` cannot both be open.
+  `tools\verify_board.py` forces a reload and reports what the board printed:
+  exit 0 running, 1 traceback, 2 port busy, 3 no board. **On a 2, ask the user
+  to disconnect whatever holds the port, then retry** — do not skip the check or
+  route around it, and do not report a board as unverified when the only problem
+  was a busy port. It sends Ctrl-C then Ctrl-D, so the `KeyboardInterrupt` that
+  produces is expected; only output after the last `code.py output:` counts.
 - Entering the REPL disables auto-reload until Ctrl-D. This is the single most
   common "my saves stopped working" report.
 

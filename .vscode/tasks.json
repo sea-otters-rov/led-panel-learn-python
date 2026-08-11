@@ -26,6 +26,15 @@
       "presentation": { "reveal": "always", "panel": "dedicated" }
     },
     {
+      "label": "Board: verify",
+      "detail": "Force a reload and report what the board printed. Close the Serial Monitor first -- the port is exclusive.",
+      "type": "shell",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": ["${workspaceFolder}\\tools\\verify_board.py"],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
       "label": "Board: serial console",
       "detail": "miniterm. Ctrl-C breaks to the REPL, Ctrl-D reloads, Ctrl-] quits. Close the Serial Monitor panel first.",
       "type": "shell",

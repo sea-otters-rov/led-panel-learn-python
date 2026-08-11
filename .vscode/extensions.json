@@ -3,6 +3,7 @@
     "ms-python.python",
     "ms-python.vscode-pylance",
     "ms-vscode.vscode-serial-monitor",
-    "emeraldwalk.runonsave"
+    "emeraldwalk.runonsave",
+    "charliermarsh.ruff"
   ]
 }

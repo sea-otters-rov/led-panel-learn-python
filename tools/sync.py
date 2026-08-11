@@ -117,7 +117,7 @@ def main():
         if root:
             try:
                 copy(src, os.path.join(root, rel))
-                print("[sync] %s -> %s" % (rel, root))
+                print(f"[sync] {rel} -> {root}")
                 return 0
             except OSError as exc:
                 last = exc
@@ -131,7 +131,7 @@ def main():
         print("       If the board is in the bootloader, press reset once.")
         return 1
 
-    print("[sync] copy of %s failed: %s" % (rel, last))
+    print(f"[sync] copy of {rel} failed: {last}")
     return 1
 
 
