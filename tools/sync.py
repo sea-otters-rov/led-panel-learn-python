@@ -37,6 +37,11 @@ Three traps, all of which cost real debugging time:
    removal", which disables write caching, so there is no write-back cache to
    hide behind. (On a fixed disk the worry would have been justified.)
 
+   THIS ONE IS WINDOWS-ONLY. Linux page-caches writes to a FAT volume, so the
+   save may sit in RAM and never trigger auto-reload. A Linux port will most
+   likely need the fsync put back, or the volume mounted with flush/sync.
+   Re-measure there; do not inherit this conclusion.
+
    That ~850ms is CircuitPython's auto-reload debounce plus the soft reboot and
    re-importing libraries. It is not tunable: supervisor.runtime exposes
    `autoreload` as an on/off bool, with no delay setting.
@@ -45,7 +50,11 @@ Three traps, all of which cost real debugging time:
    costs ~100ms per save. Just attempt the copy; a failure triggers rediscovery
    and one retry, so a replugged board or a changed drive letter self-heals.
 
-Keep imports to os and sys. Even `shutil` costs measurable startup.
+Keep imports to os and sys. Even `shutil` costs measurable startup. That rule is
+also why discovery walks directories with os.listdir instead of importing glob.
+
+Board discovery is cross-platform. Every measurement above was taken on Windows
+and none of it should be assumed to carry over -- see trap 2 especially.
 """
 
 import os
@@ -56,6 +65,38 @@ LESSONS = os.path.normcase(os.path.join(os.path.dirname(HERE), "lessons"))
 CACHE = os.path.join(HERE, ".circuitpy")
 
 
+def candidate_roots(parents=None):
+    """Places a mounted CIRCUITPY could be, likeliest first.
+
+    Windows hands out drive letters. Everywhere else the desktop auto-mounter
+    puts removable media under a per-user directory, and which one depends on
+    the environment: GNOME/udisks2 uses /media/$USER, several distros use
+    /run/media/$USER, macOS uses /Volumes. A volume actually named CIRCUITPY is
+    tried before its neighbours so the usual case costs one open().
+
+    `parents` overrides the directories to scan, which is how the POSIX branch
+    gets tested without needing a real mount.
+    """
+    if os.name == "nt" and parents is None:
+        return [c + ":\\" for c in "DEFGHIJKLMNOPQRSTUVWXYZ"]
+
+    if parents is None:
+        user = os.environ.get("USER") or os.environ.get("LOGNAME") or ""
+        parents = ("/media/" + user, "/run/media/" + user, "/media", "/Volumes")
+
+    named, others = [], []
+    for parent in parents:
+        try:
+            entries = sorted(os.listdir(parent))
+        except OSError:
+            continue  # that mount point does not exist on this machine
+        for name in entries:
+            path = os.path.join(parent, name)
+            if os.path.isdir(path):
+                (named if name == "CIRCUITPY" else others).append(path)
+    return named + others
+
+
 def discover():
     """Find the board. Only runs on the first save, or after a copy fails.
 
@@ -63,10 +104,9 @@ def discover():
     this is a real board and not a USB stick someone labelled CIRCUITPY.
     """
     magic = b"Adafruit CircuitPython"
-    for letter in "DEFGHIJKLMNOPQRSTUVWXYZ":
-        root = letter + ":\\"
+    for root in candidate_roots():
         try:
-            with open(root + "boot_out.txt", "rb") as fh:
+            with open(os.path.join(root, "boot_out.txt"), "rb") as fh:
                 if fh.read(len(magic)) != magic:
                     continue
         except OSError:

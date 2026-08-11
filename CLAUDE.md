@@ -54,6 +54,21 @@ working *on* the project.
   Use `from . import helper` for a sibling module and a leading-slash absolute
   path for data files. Deriving the path from `__file__` also works and survives
   a folder rename, but it is too much machinery to put in front of a beginner.
+- **Lesson content stays OS-neutral.** A lesson may end up running on a Linux
+  laptop, and rewriting twelve lessons is the expensive kind of port. Inside
+  `lessons\`, never write:
+
+        E:\ or any drive letter          the mount point differs per OS
+        backslash paths                  CircuitPython itself uses /
+        PowerShell or bash commands      point at a VS Code task instead
+        "the CIRCUITPY drive"            say "the board"
+
+  Board paths are absolute with forward slashes — `/L03_bitmaps/logo.bmp` —
+  which is what CircuitPython wants anyway. VS Code UI *is* fine: Ctrl+S, the
+  Serial Monitor panel, and the task list are identical on Windows and Linux.
+  (Only macOS differs, with Cmd+S, and no Mac is in scope.) Anything genuinely
+  per-OS goes in `Readme.md`, which can grow a Linux section without touching a
+  single lesson.
 - **`ruff.toml` exists for one rule.** The launcher's import looks unused to
   F401, and `ruff --fix` would delete it and leave the board running nothing.
   Ruff is not in `setup.ps1`, so only maintainers ever see this; students have
@@ -80,6 +95,13 @@ buys nothing, and validating the drive letter on the happy path. Current
 budget is ~430 ms host-side and ~850 ms board-side.
 
 `tools\sync.ps1` handles full-tree and `-Clean` syncs and is not on the hot path.
+
+**Those three traps, and the ~430 ms host budget, are Windows findings.** The
+board-side numbers below are host-independent and do carry over; the host-side
+ones do not. The `fsync` conclusion actively inverts — Windows disables write
+caching on removable volumes, Linux page-caches FAT writes, so a Linux port
+probably needs the `fsync` back. `discover()` already handles Linux and macOS
+mount points; nothing else has been tried off Windows.
 
 **The board-side ~850 ms is not import cost, so do not chase it.** Measured
 2026-08-10, 5 interleaved trials, medians in ms:
