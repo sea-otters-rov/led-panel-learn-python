@@ -1,13 +1,14 @@
-"""Lesson 1 - does the loop work?
+"""Lesson 00 - does the board work?
 
-Change MESSAGE or COLOR below and press Ctrl+S. The board restarts on its own
+This just makes sure your board is working and when you make changes, it shows up automatically.
+
+Change MESSAGE or COLOR below and press Ctrl+S. The board should restart on its own
 and the matrix updates. Nothing else to click.
 
-Watch the serial console while you do it: you should see the reload banner and
-then the new "showing:" line.
+Also make sure the serial console works by opening the bottom Serial Monitor tab
+and click Start Monitoring. Change the MESSAGE and when you save, you should see the reload
+banner and then the new "showing:" line.
 
-This file only runs because code.py says `import lesson_01_hello`. That is how
-you move between lessons.
 """
 
 import random

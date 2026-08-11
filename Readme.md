@@ -71,7 +71,7 @@ half-written file to the board and restart it mid-edit.
 | --- | --- |
 | `lessons\` | An exact image of the board's root. Everything here, and only this, ships. |
 | `lessons\code.py` | The launcher. One import line names the lesson that runs. |
-| `lessons\lesson_*.py` | The lessons themselves. This is where you work. |
+| `lessons\L00_*\main.py` | One folder per lesson, each with a `main.py`. This is where you work. |
 | `lessons\lib\` | Board libraries, managed by `circup`. Committed, so a board can be rebuilt offline. |
 | `tools\` | `sync.py` (the on-save path), `setup.ps1`, `sync.ps1`, `console.ps1`. |
 | `firmware\` | The `.uf2` this project is pinned to. |
@@ -104,12 +104,15 @@ Two things are installed into `.venv`, and neither ever executes:
 **Move to the next lesson** — open `lessons\code.py` and change the one import:
 
 ```python
-import lesson_02_colors
+from L01_colors import main
 ```
 
 Ctrl+S. That is the whole thing; the lessons are already on the board. If a
 lesson has a mistake in it, the traceback names the *lesson* file and line, not
 `code.py`.
+
+Each lesson is its own folder with a `main.py` inside, so a lesson that needs a
+bitmap, a font, or a second module keeps them together in one place.
 
 **Push everything** (after adding a font, bitmap, or new module) —
 Ctrl+Shift+P → *Run Task* → **Board: sync all files**. On-save only copies the

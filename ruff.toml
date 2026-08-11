@@ -1,0 +1,9 @@
+# Ruff is not installed by tools\setup.ps1 and students never run a linter, so
+# this file only affects maintainers who have the Ruff extension installed.
+#
+# lessons\code.py imports a lesson for its side effect -- the import IS the
+# program. F401 "imported but unused" is wrong there, and it is worse than
+# noise: `ruff --fix`, or the extension's fix-on-save, would delete the only
+# functional line in the launcher and leave the board running nothing.
+[lint.per-file-ignores]
+"lessons/code.py" = ["F401"]

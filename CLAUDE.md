@@ -32,6 +32,26 @@ working *on* the project.
   hardware: no `__init__.py` is needed, tracebacks name the lesson file and its
   real line number, and editing a lesson file is 13% *faster* per save than the
   flat layout it replaced.
+- **One folder per lesson, always with a `main.py`.** `L00_does_it_work\main.py`,
+  imported as `from L00_does_it_work import main`. A lesson that grows a bitmap,
+  a font, or a helper module keeps them in its own folder instead of scattering
+  them across the board root. Folder names must be valid Python identifiers,
+  which is why they lead with a letter.
+- **A lesson folder is not on `sys.path`, and the cwd is `/`.** So the two forms
+  a student would guess both fail, measured on hardware 2026-08-10:
+
+        from . import helper                 works, no __init__.py needed
+        import helper                        ImportError: no module named 'helper'
+        open("/L00_does_it_work/data.txt")   works
+        open("data.txt")                     OSError: No such file/directory
+
+  Use `from . import helper` for a sibling module and a leading-slash absolute
+  path for data files. Deriving the path from `__file__` also works and survives
+  a folder rename, but it is too much machinery to put in front of a beginner.
+- **`ruff.toml` exists for one rule.** The launcher's import looks unused to
+  F401, and `ruff --fix` would delete it and leave the board running nothing.
+  Ruff is not in `setup.ps1`, so only maintainers ever see this; students have
+  no linter.
 - **Save = deploy.** Writing to CIRCUITPY is what triggers auto-reload, so
   copying a file *is* running it. Autosave is off deliberately; with it on,
   every pause in typing would push a half-written file and restart the board.
@@ -89,9 +109,9 @@ of a save, and the lessons need it. There is no import trimming worth doing.
 Dev environment: done, verified end to end on hardware (2026-08-10).
 
 `lessons\` now holds the board image and one placeholder lesson
-(`lesson_01_hello.py`, the old `device\code.py`) proving the launcher works.
-The `device\` folder is gone; it was renamed, not copied, so `git log --follow`
-still tracks the history.
+(`L00_does_it_work\main.py`, the old `device\code.py`) proving the launcher
+works. The `device\` folder is gone; it was renamed, not copied, so
+`git log --follow` still tracks the history.
 
 Writing the actual lesson sequence is the next piece of work. Whether it should
 assume zero prior programming experience is still an open question.
