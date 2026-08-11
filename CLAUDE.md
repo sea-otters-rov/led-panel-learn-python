@@ -26,6 +26,21 @@ working *on* the project.
 - Entering the REPL disables auto-reload until Ctrl-D. This is the single most
   common "my saves stopped working" report.
 
+## Canonical commands
+
+Permission rules match the exact command string, so vary these and you buy the
+user another approval prompt. Run them from the repo root, one per call:
+
+    .\.venv\Scripts\python.exe .\tools\verify_board.py
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\sync.ps1
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\sync.ps1 -Clean
+    git commit --quiet -F .commitmsg
+
+Full-sync instead of `sync.py <path>`; the path varies, the full sync does not.
+Write commit messages to `.commitmsg` (gitignored) rather than a temp file whose
+name changes. Never prefix git with `cd` or `git -C` — the rule matches on the
+leading token.
+
 ## Invariants
 
 - **`lessons\` is an exact image of the board's root.** Anything that is not

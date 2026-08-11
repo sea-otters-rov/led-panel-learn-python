@@ -6,10 +6,11 @@
       "Edit(**)",
       "Write(**)",
 
+      "PowerShell(.\\\\.venv\\\\Scripts\\\\python.exe .\\\\tools\\\\verify_board.py)",
+      "PowerShell(powershell -NoProfile -ExecutionPolicy Bypass -File .\\\\tools\\\\sync.ps1)",
+      "PowerShell(powershell -NoProfile -ExecutionPolicy Bypass -File .\\\\tools\\\\sync.ps1 -Clean)",
+      "PowerShell(git commit --quiet -F .commitmsg)",
       "PowerShell(.\\\\.venv\\\\Scripts\\\\python.exe .\\\\tools\\\\verify_board.py*)",
-      "PowerShell(& .\\\\.venv\\\\Scripts\\\\python.exe .\\\\tools\\\\verify_board.py*)",
-      "PowerShell(.\\\\.venv\\\\Scripts\\\\python.exe .\\\\tools\\\\sync.py*)",
-      "PowerShell(& .\\\\.venv\\\\Scripts\\\\python.exe .\\\\tools\\\\sync.py*)",
       "PowerShell(powershell -NoProfile -ExecutionPolicy Bypass -File .\\\\tools\\\\sync.ps1*)",
 
       "Bash(git status*)",

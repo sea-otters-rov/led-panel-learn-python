@@ -10,3 +10,7 @@ tools/.circuitpy
 
 # Per-machine tool permission grants, not project config.
 .claude/settings.local.json
+
+# Scratch commit message. A fixed path, so one permission rule covers every
+# commit instead of one per temp filename.
+.commitmsg
