@@ -22,17 +22,25 @@ working *on* the project.
 
 ## Invariants
 
-- **`device\` is an exact image of the board's root.** Anything that is not
+- **`lessons\` is an exact image of the board's root.** Anything that is not
   board content lives outside it — which is why `settings.toml.example` sits at
   the repo root. This is what lets `sync.ps1 -Clean` trust robocopy `/PURGE`.
+  It carries `lib\` and `settings.toml` as well as the lesson files, because the
+  board's root has to.
+- **`code.py` is a launcher, not lesson content.** It holds one import naming
+  the current lesson; changing that line is how a student moves on. Verified on
+  hardware: no `__init__.py` is needed, tracebacks name the lesson file and its
+  real line number, and editing a lesson file is 13% *faster* per save than the
+  flat layout it replaced.
 - **Save = deploy.** Writing to CIRCUITPY is what triggers auto-reload, so
   copying a file *is* running it. Autosave is off deliberately; with it on,
   every pause in typing would push a half-written file and restart the board.
 - **Stub version tracks firmware.** `circuitpython-stubs` is pinned to 10.2.1 to
   match `firmware\*.uf2`. Bump them together, or autocomplete quietly lies.
-- **`device\lib` is committed.** circup installs into the repo (`--path
-  .\device`), not onto the board, so a board can be rebuilt offline and
-  identically.
+- **`lessons\lib` is committed.** circup installs into the repo (`--path
+  .\lessons`), not onto the board, so a board can be rebuilt offline and
+  identically. Students never run circup; adding a library is a maintainer job
+  followed by a full sync.
 
 ## The save path is performance-sensitive
 
@@ -66,7 +74,7 @@ Two things that survey turned up, both worth more than the 13 ms:
 - The chain everyone assumes is expensive is not being loaded. `matrix.mpy` is
   2 KB and `adafruit_matrixportal\__init__.py` is empty; portalbase and esp32spi
   hang off `.matrixportal` and `.network`, which nothing here imports. The
-  network libraries are 55% of `device\lib` and cost 0 ms — trim them for
+  network libraries are 55% of `lessons\lib` and cost 0 ms — trim them for
   clutter if you like, never for speed.
 - `Matrix()` calls `displayio.release_displays()` for you. Go direct without it
   and the first run works, then every save after raises `RuntimeError: Too many
@@ -79,5 +87,11 @@ of a save, and the lessons need it. There is no import trimming worth doing.
 ## Status
 
 Dev environment: done, verified end to end on hardware (2026-08-10).
-`lessons\` is empty — the lesson sequence is the next piece of work. Whether it
-should assume zero prior programming experience is still an open question.
+
+`lessons\` now holds the board image and one placeholder lesson
+(`lesson_01_hello.py`, the old `device\code.py`) proving the launcher works.
+The `device\` folder is gone; it was renamed, not copied, so `git log --follow`
+still tracks the history.
+
+Writing the actual lesson sequence is the next piece of work. Whether it should
+assume zero prior programming experience is still an open question.

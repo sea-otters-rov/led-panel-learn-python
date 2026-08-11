@@ -1,10 +1,13 @@
-"""Lesson 0 - does the loop work?
+"""Lesson 1 - does the loop work?
 
 Change MESSAGE or COLOR below and press Ctrl+S. The board restarts on its own
 and the matrix updates. Nothing else to click.
 
 Watch the serial console while you do it: you should see the reload banner and
 then the new "showing:" line.
+
+This file only runs because code.py says `import lesson_01_hello`. That is how
+you move between lessons.
 """
 
 import random

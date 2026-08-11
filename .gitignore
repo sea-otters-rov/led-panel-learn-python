@@ -3,7 +3,7 @@ __pycache__/
 *.pyc
 
 # Real credentials. settings.toml.example is the tracked template.
-device/settings.toml
+lessons/settings.toml
 
 # Cached CIRCUITPY drive letter, per machine.
 tools/.circuitpy

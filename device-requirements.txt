@@ -1,10 +1,10 @@
 # Libraries that get copied onto the board, as circup module names.
 # circup pulls each module's dependencies automatically.
 #
-# Installed into device\lib (NOT straight onto the board) so the repo stays the
+# Installed into lessons\lib (NOT straight onto the board) so the repo stays the
 # source of truth and a board can be rebuilt offline:
 #
-#   circup --path .\device --board-id matrixportal_m4 --cpy-version 10.2.1 \
+#   circup --path .\lessons --board-id matrixportal_m4 --cpy-version 10.2.1 \
 #          install -r device-requirements.txt
 #
 # Keep this list in step with requirements-intellisense.txt.

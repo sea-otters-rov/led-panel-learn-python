@@ -15,7 +15,7 @@ Install [VS Code](https://code.visualstudio.com/) and
 ```
 
 That installs the VS Code extensions, builds `.venv`, fetches version-matched
-stubs, and downloads the board libraries into `device\lib`. It is idempotent.
+stubs, and downloads the board libraries into `lessons\lib`. It is idempotent.
 
 To also wipe an attached board and load this project onto it:
 
@@ -34,7 +34,7 @@ Ctrl+Shift+P → *Python: Select Interpreter* → `.venv`.
    Ctrl+Shift+P → **Serial Monitor: Focus on Monitor View** → pick the COM port →
    **Start Monitoring**.
    *Any baud rate works. USB CDC ignores it — 115200 is just convention.*
-2. Edit anything under `device\`.
+2. Edit anything under `lessons\`.
 3. **Ctrl+S.**
 
 On save, VS Code copies that one file to the board. Writing to CIRCUITPY is what
@@ -69,14 +69,15 @@ half-written file to the board and restart it mid-edit.
 
 | Path | What it is |
 | --- | --- |
-| `device\` | An exact image of the board's root. Everything here, and only this, ships. |
-| `device\lib\` | Board libraries, managed by `circup`. Committed, so a board can be rebuilt offline. |
-| `lessons\` | Tutorial material. |
+| `lessons\` | An exact image of the board's root. Everything here, and only this, ships. |
+| `lessons\code.py` | The launcher. One import line names the lesson that runs. |
+| `lessons\lesson_*.py` | The lessons themselves. This is where you work. |
+| `lessons\lib\` | Board libraries, managed by `circup`. Committed, so a board can be rebuilt offline. |
 | `tools\` | `sync.py` (the on-save path), `setup.ps1`, `sync.ps1`, `console.ps1`. |
 | `firmware\` | The `.uf2` this project is pinned to. |
 | `.venv\` | Host-side only: `circup`, stubs, library sources for IntelliSense. Never runs on the board. |
 
-`device\settings.toml` is gitignored — it is where credentials go.
+`lessons\settings.toml` is gitignored — it is where credentials go.
 `settings.toml.example` at the repo root is the tracked template.
 
 ---
@@ -100,11 +101,21 @@ Two things are installed into `.venv`, and neither ever executes:
 
 ## Common tasks
 
+**Move to the next lesson** — open `lessons\code.py` and change the one import:
+
+```python
+import lesson_02_colors
+```
+
+Ctrl+S. That is the whole thing; the lessons are already on the board. If a
+lesson has a mistake in it, the traceback names the *lesson* file and line, not
+`code.py`.
+
 **Push everything** (after adding a font, bitmap, or new module) —
 Ctrl+Shift+P → *Run Task* → **Board: sync all files**. On-save only copies the
 file you saved.
 
-**Reset a board to a known-good state** (wipes anything not in `device\`):
+**Reset a board to a known-good state** (wipes anything not in `lessons\`):
 
 ```powershell
 .\tools\sync.ps1 -Clean
@@ -112,7 +123,7 @@ file you saved.
 
 **Add a library** — add its name to `device-requirements.txt`, add the matching
 PyPI name to `requirements-intellisense.txt`, then run the
-**Board: install libraries into device\lib** task and sync.
+**Board: install libraries into lessons\lib** task and sync.
 
 **Reflash the firmware** — double-tap the reset button, wait for the bootloader
 drive to appear, then:
@@ -132,7 +143,7 @@ which *disables auto-reload*. Press **Ctrl+D** to reload and re-enable it.
 **"Failed to save 'code.py' ... UNKNOWN (FileSystemError)".**
 A sync was still running and holding the file when VS Code tried to write it,
 which means the save path got slow. Time one:
-`Measure-Command { .\.venv\Scripts\python.exe .\tools\sync.py .\device\code.py }`.
+`Measure-Command { .\.venv\Scripts\python.exe .\tools\sync.py .\lessons\code.py }`.
 Anything much over 400 ms means something new is slow — see the notes in
 `tools\sync.py` before changing how it copies.
 

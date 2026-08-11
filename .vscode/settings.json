@@ -11,7 +11,7 @@
   "emeraldwalk.runonsave": {
     "commands": [
       {
-        "match": "device[\\\\/].*\\.(py|toml|json|txt|bmp|bdf|pcf|wav|mp3)$",
+        "match": "lessons[\\\\/].*\\.(py|toml|json|txt|bmp|bdf|pcf|wav|mp3)$",
         "notMatch": "__pycache__",
         "cmd": "\"${workspaceFolder}\\.venv\\Scripts\\python.exe\" \"${workspaceFolder}\\tools\\sync.py\" \"${file}\"",
         "autoShowOutputPanel": "error"
@@ -28,7 +28,9 @@
   // real MatrixPortal pin names and nothing is underlined in red.
   // ---------------------------------------------------------------------------
   "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
-  "python.analysis.extraPaths": ["${workspaceFolder}/device"],
+  // lessons\ is the board root, so a lesson importing another module resolves
+  // the same way here as it does on the board.
+  "python.analysis.extraPaths": ["${workspaceFolder}/lessons"],
   "python.analysis.typeCheckingMode": "basic",
   "python.analysis.diagnosticSeverityOverrides": {
     "reportMissingModuleSource": "none"

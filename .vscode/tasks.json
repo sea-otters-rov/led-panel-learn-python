@@ -3,7 +3,7 @@
   "tasks": [
     {
       "label": "Board: sync all files",
-      "detail": "Copy everything in device\\ to the CIRCUITPY drive.",
+      "detail": "Copy everything in lessons\\ to the CIRCUITPY drive.",
       "type": "shell",
       "command": "powershell",
       "args": [
@@ -15,7 +15,7 @@
     },
     {
       "label": "Board: sync all files (clean)",
-      "detail": "Sync, then DELETE anything on the board that is not in device\\. Use on a fresh board to remove the factory demo.",
+      "detail": "Sync, then DELETE anything on the board that is not in lessons\\. Use on a fresh board to remove the factory demo.",
       "type": "shell",
       "command": "powershell",
       "args": [
@@ -38,12 +38,12 @@
       "presentation": { "reveal": "always", "panel": "dedicated", "focus": true }
     },
     {
-      "label": "Board: install libraries into device\\lib",
-      "detail": "Run circup against the local device\\ folder using device-requirements.txt.",
+      "label": "Board: install libraries into lessons\\lib",
+      "detail": "Run circup against the local lessons\\ folder using device-requirements.txt.",
       "type": "shell",
       "command": "${workspaceFolder}\\.venv\\Scripts\\circup.exe",
       "args": [
-        "--path", "${workspaceFolder}\\device",
+        "--path", "${workspaceFolder}\\lessons",
         "--board-id", "matrixportal_m4",
         "--cpy-version", "10.2.1",
         "install", "-r", "${workspaceFolder}\\device-requirements.txt"

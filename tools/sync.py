@@ -52,7 +52,7 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DEVICE = os.path.normcase(os.path.join(os.path.dirname(HERE), "device"))
+LESSONS = os.path.normcase(os.path.join(os.path.dirname(HERE), "lessons"))
 CACHE = os.path.join(HERE, ".circuitpy")
 
 
@@ -107,10 +107,10 @@ def main():
     if not os.path.isfile(src):
         return 0
 
-    # Saves outside device\ (lessons, tools, README) are not device code.
-    if not os.path.normcase(src).startswith(DEVICE + os.sep):
+    # Saves outside lessons\ (tools, README, firmware) are not board content.
+    if not os.path.normcase(src).startswith(LESSONS + os.sep):
         return 0
-    rel = src[len(DEVICE) + 1:]
+    rel = src[len(LESSONS) + 1:]
 
     root = cached()
     for attempt in (1, 2):

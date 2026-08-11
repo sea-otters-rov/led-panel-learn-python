@@ -11,11 +11,11 @@
       3. creates .venv and installs circup, version-pinned stubs, and the
          plain-Python Adafruit library sources that give Pylance something to read
       4. points the `board` stubs at the MatrixPortal M4 pinout
-      5. seeds device\settings.toml from the example
-      6. downloads the board libraries into device\lib via circup
+      5. seeds lessons\settings.toml from the example
+      6. downloads the board libraries into lessons\lib via circup
 
 .PARAMETER Provision
-    Also push device\ to an attached board with -Clean, wiping the factory demo.
+    Also push lessons\ to an attached board with -Clean, wiping the factory demo.
 
 .PARAMETER Flash
     Also copy the bundled .uf2 firmware if a UF2 bootloader drive is attached.
@@ -107,23 +107,23 @@ Step 4 "Pointing 'board' stubs at $BoardId"
 Ok "board.MTX_R1, board.ACCELEROMETER, etc. will now autocomplete"
 
 # --- 5. settings.toml ---------------------------------------------------------
-Step 5 'Seeding device\settings.toml'
-$toml    = Join-Path $repo 'device\settings.toml'
+Step 5 'Seeding lessons\settings.toml'
+$toml    = Join-Path $repo 'lessons\settings.toml'
 $tomlEx  = Join-Path $repo 'settings.toml.example'
 if (Test-Path $toml) {
-    Ok 'device\settings.toml already exists (left alone)'
+    Ok 'lessons\settings.toml already exists (left alone)'
 } else {
     Copy-Item $tomlEx $toml
     Ok 'copied from settings.toml.example -- it is gitignored, put secrets there'
 }
 
 # --- 6. board libraries -------------------------------------------------------
-Step 6 'Fetching board libraries into device\lib'
+Step 6 'Fetching board libraries into lessons\lib'
 $circup = Join-Path $venv 'Scripts\circup.exe'
-& $circup --path (Join-Path $repo 'device') --board-id $BoardId --cpy-version $CpyVersion `
+& $circup --path (Join-Path $repo 'lessons') --board-id $BoardId --cpy-version $CpyVersion `
           install -r (Join-Path $repo 'device-requirements.txt')
 if ($LASTEXITCODE -ne 0) { Warn 'circup reported a problem -- check the output above' }
-Ok 'device\lib populated'
+Ok 'lessons\lib populated'
 
 # --- 7. optional: firmware ----------------------------------------------------
 if ($Flash) {
@@ -154,4 +154,4 @@ Write-Host "`nDone." -ForegroundColor Green
 Write-Host "  Open this folder in VS Code, then:" -ForegroundColor Green
 Write-Host "    - Ctrl+Shift+P -> 'Python: Select Interpreter' -> .venv" -ForegroundColor Green
 Write-Host "    - Ctrl+Shift+P -> 'Serial Monitor: Focus on Monitor View' -> pick the COM port -> Start Monitoring" -ForegroundColor Green
-Write-Host "    - edit device\code.py and hit Ctrl+S" -ForegroundColor Green
+Write-Host "    - edit lessons\lesson_01_hello.py and hit Ctrl+S" -ForegroundColor Green

@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Push files from .\device to the attached CIRCUITPY drive.
+    Push files from .\lessons to the attached CIRCUITPY drive.
 
 .DESCRIPTION
     The repo on your hard drive is the source of truth. The board's flash is a
@@ -17,16 +17,16 @@
     that is still running.
 
 .EXAMPLE
-    .\tools\sync.ps1 -File C:\...\learn-py\device\code.py
+    .\tools\sync.ps1 -File C:\...\learn-py\lessons\code.py
     Copy a single file. This is what VS Code runs on save.
 
 .EXAMPLE
     .\tools\sync.ps1
-    Copy the whole device\ tree (added files, libraries, fonts, bitmaps).
+    Copy the whole lessons\ tree (added files, libraries, fonts, bitmaps).
 
 .EXAMPLE
     .\tools\sync.ps1 -Clean
-    Copy the whole tree AND delete anything on the board that is not in device\.
+    Copy the whole tree AND delete anything on the board that is not in lessons\.
     Use this to wipe the factory demo off a fresh board.
 #>
 [CmdletBinding()]
@@ -37,7 +37,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$src = (Resolve-Path (Join-Path $PSScriptRoot '..\device')).Path.TrimEnd('\')
+$src = (Resolve-Path (Join-Path $PSScriptRoot '..\lessons')).Path.TrimEnd('\')
 
 function Find-CircuitPy {
     # Resolve by volume label, never a hard-coded letter -- the drive letter
@@ -104,7 +104,7 @@ if ($File) {
     if (-not (Test-Path -LiteralPath $File)) { exit 0 }
     $full = (Resolve-Path -LiteralPath $File).Path
 
-    # Saves outside device\ (lessons, tools, README) are not device code.
+    # Saves outside lessons\ (tools, README, firmware) are not board content.
     if (-not $full.StartsWith($src, [StringComparison]::OrdinalIgnoreCase)) { exit 0 }
 
     $rel = $full.Substring($src.Length).TrimStart('\')
@@ -125,7 +125,7 @@ if ($Clean) {
         Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-# device\ is an exact image of the board's root -- anything that is not board
+# lessons\ is an exact image of the board's root -- anything that is not board
 # content lives outside it, so /PURGE can be trusted to clean up strays.
 #
 # /FFT : compare timestamps at FAT's 2-second granularity (NTFS -> FAT)
@@ -149,5 +149,5 @@ if (-not $Quiet) {
     # Re-stat: the copy just changed how much is free.
     $freeKB = [math]::Round((Find-CircuitPy).AvailableFreeSpace / 1KB)
     $verb = if ($Clean) { 'synced (clean)' } else { 'synced' }
-    Write-Host "[sync] device\ $verb -> $dst  ($freeKB KB free)" -ForegroundColor Green
+    Write-Host "[sync] lessons\ $verb -> $dst  ($freeKB KB free)" -ForegroundColor Green
 }
