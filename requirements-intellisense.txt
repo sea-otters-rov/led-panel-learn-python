@@ -19,6 +19,5 @@ adafruit-circuitpython-esp32spi
 adafruit-circuitpython-requests
 adafruit-circuitpython-minimqtt
 adafruit-circuitpython-neopixel
-adafruit-circuitpython-led-animation
 adafruit-circuitpython-busdevice
 adafruit-io

@@ -148,18 +148,24 @@ of a save, and the lessons need it. There is no import trimming worth doing.
 There is no `enum` module in CircuitPython — checked on the board, it is absent.
 
 - **`rainbowio.colorwheel(0..255)` is built into the firmware.** 0.1 ms to
-  import, returns a packed `0xRRGGBB` int. Use this for the wheel; importing it
-  from `adafruit_led_animation.color`, which merely re-exports it, costs 18.6 ms
-  instead.
-- **`adafruit_led_animation.color` supplies the names** — `RED`, `CYAN`,
-  `AMBER`, `GOLD`, `JADE`, `OLD_LACE`, `RAINBOW`, plus `calculate_intensity`.
-  25 KB, 18.6 ms.
-- **Its constants are RGB tuples, and that is fine.** `RED` is `(255, 0, 0)`,
-  not `0xFF0000`, which looks wrong for `displayio`. Measured on hardware:
-  `displayio` converts tuples itself, so `Label(color=RED)` lands in the palette
-  as `0xff0000`, byte-identical to passing the int. Do not write conversion
-  helpers for this. The one wrinkle is that `Label.color` returns whatever you
-  set, so a lesson that reads `.color` back gets a tuple, not an int.
+  import, returns a packed `0xRRGGBB` int. Use it for anything that cycles.
+- **`lessons\colors.py` owns the names** — `RED`, `CYAN`, `AMBER`, `GOLD`,
+  `JADE`, `OLD_LACE`, `RAINBOW`. It lives at the board root, so `import colors`
+  works from inside any lesson folder even though a lesson's own siblings do
+  not. Values are packed ints, matching `colorwheel` and the hex literals a
+  student sees everywhere else.
+- **`adafruit_led_animation` was tried and dropped.** 25 KB and 18.6 ms of
+  NeoPixel strip-animation machinery to get a list of constants, versus 15.7 ms
+  for a file a student can open and extend. If it ever comes back: its constants
+  are RGB tuples, not ints, and that is fine — measured on hardware, `displayio`
+  converts tuples itself, so `Label(color=RED)` lands in the palette as
+  `0xff0000`, byte-identical to passing the int. Do not write conversion helpers.
+  (`Label.color` does return whatever you set, so reading it back gives a tuple.)
+- **Prose in a board-side `.py` is not free.** `colors.py` imports in 15.7 ms
+  with its docstring and 9.4 ms without — ~6 ms to compile the comments, because
+  source is compiled on the board every reload while a `.mpy` is not. Keep lesson
+  docstrings regardless, since 6 ms is under 1% of a save, but weigh it before
+  adding prose to something *every* lesson imports.
 
 Board root is on `sys.path`, so a shared module next to `code.py` — a project
 `colors.py`, say — is importable as `import colors` from inside a lesson folder,
