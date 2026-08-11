@@ -1,15 +1,16 @@
 {
   "permissions": {
+    "defaultMode": "acceptEdits",
     "allow": [
       "Read(**)",
+      "Edit(**)",
+      "Write(**)",
 
-      "PowerShell(.\\.venv\\Scripts\\python.exe .\\tools\\verify_board.py*)",
-      "PowerShell(& .\\.venv\\Scripts\\python.exe .\\tools\\verify_board.py*)",
-      "PowerShell(.\\.venv\\Scripts\\python.exe .\\tools\\sync.py*)",
-      "PowerShell(& .\\.venv\\Scripts\\python.exe .\\tools\\sync.py*)",
-      "PowerShell(powershell -NoProfile -ExecutionPolicy Bypass -File .\\tools\\sync.ps1*)",
-      "Bash(./.venv/Scripts/python.exe ./tools/verify_board.py*)",
-      "Bash(./.venv/Scripts/python.exe ./tools/sync.py*)",
+      "PowerShell(.\\\\.venv\\\\Scripts\\\\python.exe .\\\\tools\\\\verify_board.py*)",
+      "PowerShell(& .\\\\.venv\\\\Scripts\\\\python.exe .\\\\tools\\\\verify_board.py*)",
+      "PowerShell(.\\\\.venv\\\\Scripts\\\\python.exe .\\\\tools\\\\sync.py*)",
+      "PowerShell(& .\\\\.venv\\\\Scripts\\\\python.exe .\\\\tools\\\\sync.py*)",
+      "PowerShell(powershell -NoProfile -ExecutionPolicy Bypass -File .\\\\tools\\\\sync.ps1*)",
 
       "Bash(git status*)",
       "Bash(git log*)",
