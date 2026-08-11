@@ -82,6 +82,19 @@ working *on* the project.
   .\lessons`), not onto the board, so a board can be rebuilt offline and
   identically. Students never run circup; adding a library is a maintainer job
   followed by a full sync.
+- **Seven libraries are frozen into the firmware; do not ship them in `lib`.**
+  `help("modules")` on the board lists `adafruit_bus_device`,
+  `adafruit_connection_manager`, `adafruit_esp32spi`, `adafruit_pixelbuf`,
+  `adafruit_portalbase`, `adafruit_requests`, and `neopixel` as built in. A copy
+  in `lib\` shadows the frozen one and costs 57.6 KB for nothing. They were
+  removed and the frozen versions verified on hardware: `adafruit_lis3dh` still
+  reads the accelerometer through frozen `bus_device`, and `neopixel` still
+  drives the onboard pixel through frozen `pixelbuf`.
+
+  **circup puts them all back.** They are dependencies of `adafruit_matrixportal`
+  and `adafruit_lis3dh`, so `install -r device-requirements.txt` reinstalls every
+  one. After any circup run, delete them again and re-sync — or the 57.6 KB
+  quietly returns.
 
 ## The save path is performance-sensitive
 
@@ -121,9 +134,7 @@ Two things that survey turned up, both worth more than the 13 ms:
 
 - The chain everyone assumes is expensive is not being loaded. `matrix.mpy` is
   2 KB and `adafruit_matrixportal\__init__.py` is empty; portalbase and esp32spi
-  hang off `.matrixportal` and `.network`, which nothing here imports. The
-  network libraries are 55% of `lessons\lib` and cost 0 ms — trim them for
-  clutter if you like, never for speed.
+  hang off `.matrixportal` and `.network`, which nothing here imports.
 - `Matrix()` calls `displayio.release_displays()` for you. Go direct without it
   and the first run works, then every save after raises `RuntimeError: Too many
   display busses`. A student meets that on save #2 with nothing on screen to
