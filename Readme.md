@@ -177,13 +177,15 @@ before writing, never by a hard-coded letter.
 **Out of space.** The board has about 2 MB total. `sync.ps1` prints free space
 after a full sync.
 
-**The filesystem got corrupted.** In the REPL:
+**The filesystem got corrupted.** The signs: Explorer lists a file but opening it
+says it cannot be found, a save fails with `[Errno 22] Invalid argument`, or the
+drive's health shows a warning. The directory entry survives while the data it
+points at does not, so re-syncing never helps — the damage is in the filesystem,
+not in any file.
 
-```python
-import storage; storage.erase_filesystem()
-```
-
-Then run `.\tools\sync.ps1 -Clean`.
+Ctrl+Shift+P → *Run Task* → **Board: erase a corrupted filesystem**, then
+**Board: sync all files (clean)**. Nothing is lost; `lessons\` is the source of
+truth for every byte on the board.
 
 **Don't "safely eject" CIRCUITPY.** It stays mounted for the whole session by
 design; ejecting it just makes saving stop working.

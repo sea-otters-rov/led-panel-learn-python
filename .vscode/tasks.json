@@ -35,6 +35,15 @@
       "presentation": { "reveal": "always", "panel": "dedicated" }
     },
     {
+      "label": "Board: erase a corrupted filesystem",
+      "detail": "Last resort. Wipes the board, then run 'Board: sync all files (clean)' to put everything back. Close the Serial Monitor first.",
+      "type": "shell",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": ["${workspaceFolder}\\tools\\reset_board.py", "--yes"],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
       "label": "Board: serial console",
       "detail": "miniterm. Ctrl-C breaks to the REPL, Ctrl-D reloads, Ctrl-] quits. Close the Serial Monitor panel first.",
       "type": "shell",
