@@ -32,14 +32,24 @@ Permission rules match the exact command string, so vary these and you buy the
 user another approval prompt. Run them from the repo root, one per call:
 
     .\.venv\Scripts\python.exe .\tools\verify_board.py
-    powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\sync.ps1
-    powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\sync.ps1 -Clean
+    & .\tools\sync.ps1
+    & .\tools\sync.ps1 -Clean
     git commit --quiet -F .commitmsg
 
 Full-sync instead of `sync.py <path>`; the path varies, the full sync does not.
 Write commit messages to `.commitmsg` (gitignored) rather than a temp file whose
 name changes. Never prefix git with `cd` or `git -C` — the rule matches on the
 leading token.
+
+**Do not launch the sync through `powershell -File`.** That form spawns a nested
+shell and prompts every single time no matter what the allow rules say — proven
+after a restart, with a correctly escaped rule present in both settings files.
+`& .\tools\sync.ps1` is the same script without the child process, and it
+allowlists normally. The VS Code task in `tasks.json` still uses `-File`, which
+is fine: students click the task, they do not go through these rules.
+
+A rule added to `.claude\settings.json` mid-session is not read until the app
+restarts. Say so when adding one, instead of letting the next prompt reveal it.
 
 ## Invariants
 

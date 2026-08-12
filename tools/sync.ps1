@@ -180,3 +180,8 @@ if (-not $Quiet) {
     $verb = if ($Clean) { 'synced (clean)' } else { 'synced' }
     Write-Host "[sync] lessons\ $verb -> $dst  ($freeKB KB free)" -ForegroundColor Green
 }
+
+# Without this the script leaks robocopy's exit code, and robocopy uses 1 for
+# "files copied" and 2 for "extra files detected" -- both success. Harmless when
+# launched via `powershell -File`, but a false failure when dot-invoked.
+exit 0
