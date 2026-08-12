@@ -67,7 +67,12 @@ restarts. Say so when adding one, instead of letting the next prompt reveal it.
   imported as `from L00_does_it_work import main`. A lesson that grows a bitmap,
   a font, or a helper module keeps them in its own folder instead of scattering
   them across the board root. Folder names must be valid Python identifiers,
-  which is why they lead with a letter.
+  which is why they lead with a letter, and they sort into teaching order, which
+  is why they are zero-padded.
+- **The first docstring line of `main.py` is the lesson's catalogue entry.**
+  `tools\lesson.py` scans for folders holding a `main.py` and lists that line, so
+  a new lesson appears in the picker with no catalogue file to update. Keep that
+  line short and say what the student will *do*, not what the lesson covers.
 - **A lesson folder is not on `sys.path`, and the cwd is `/`.** So the two forms
   a student would guess both fail, measured on hardware 2026-08-10:
 

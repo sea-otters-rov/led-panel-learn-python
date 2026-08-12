@@ -2,6 +2,15 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Lessons: choose one",
+      "detail": "Show every lesson with its description, and switch the board to the one you pick.",
+      "type": "shell",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": ["${workspaceFolder}\\tools\\lesson.py"],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "focus": true }
+    },
+    {
       "label": "Board: sync all files",
       "detail": "Copy everything in lessons\\ to the CIRCUITPY drive.",
       "type": "shell",
