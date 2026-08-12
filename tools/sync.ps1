@@ -90,6 +90,31 @@ function Copy-Streaming {
     }
 }
 
+function Repair-Bom {
+    <#
+        CircuitPython does not skip a UTF-8 BOM. It reaches those three bytes
+        before the first line and reports "line 1: SyntaxError: invalid syntax",
+        pointing at a docstring that is perfectly valid -- a dead end for a
+        student, and it survives every save until someone inspects the bytes.
+
+        robocopy and Copy-Streaming both copy verbatim, so this is the only
+        place to catch it. Fixed in the source rather than in transit: a BOM on
+        a .py file in this repo is always wrong, and repairing it once stops it
+        coming back on every sync. PowerShell's Set-Content -Encoding utf8
+        writes one by default, which is how this was found.
+    #>
+    param([string[]]$Paths)
+
+    foreach ($p in $Paths) {
+        try { $b = [System.IO.File]::ReadAllBytes($p) } catch { continue }
+        if ($b.Length -lt 3 -or $b[0] -ne 0xEF -or $b[1] -ne 0xBB -or $b[2] -ne 0xBF) { continue }
+        $rest = New-Object byte[] ($b.Length - 3)
+        [Array]::Copy($b, 3, $rest, 0, $rest.Length)
+        [System.IO.File]::WriteAllBytes($p, $rest)
+        Write-Host "[sync] stripped a UTF-8 BOM from $(Split-Path $p -Leaf) -- the board cannot parse one." -ForegroundColor Yellow
+    }
+}
+
 $drive = Find-CircuitPy
 if (-not $drive) {
     Write-Host "[sync] No CIRCUITPY drive found." -ForegroundColor Yellow
@@ -106,6 +131,8 @@ if ($File) {
 
     # Saves outside lessons\ (tools, README, firmware) are not board content.
     if (-not $full.StartsWith($src, [StringComparison]::OrdinalIgnoreCase)) { exit 0 }
+
+    if ($full -like '*.py') { Repair-Bom -Paths $full }
 
     $rel = $full.Substring($src.Length).TrimStart('\')
     $target = Join-Path $dst $rel
@@ -124,6 +151,8 @@ if ($Clean) {
     Get-ChildItem -Path $dst -Directory -Recurse -Force -Filter '__pycache__' -ErrorAction SilentlyContinue |
         Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 }
+
+Repair-Bom -Paths (Get-ChildItem $src -Recurse -Filter *.py -File).FullName
 
 # lessons\ is an exact image of the board's root -- anything that is not board
 # content lives outside it, so /PURGE can be trusted to clean up strays.

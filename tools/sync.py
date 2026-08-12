@@ -50,6 +50,11 @@ Three traps, all of which cost real debugging time:
    costs ~100ms per save. Just attempt the copy; a failure triggers rediscovery
    and one retry, so a replugged board or a changed drive letter self-heals.
 
+A UTF-8 BOM on a .py file is stripped on the way to the board, with a warning.
+CircuitPython does not skip one, and the SyntaxError it raises names line 1 and
+points at a valid docstring. PowerShell's `Set-Content -Encoding utf8` writes a
+BOM by default, which is how this got found.
+
 Keep imports to os and sys. Even `shutil` costs measurable startup. That rule is
 also why discovery walks directories with os.listdir instead of importing glob.
 
@@ -128,12 +133,24 @@ def cached():
         return None
 
 
+BOM = b"\xef\xbb\xbf"
+
+
 def copy(src, dst):
     d = os.path.dirname(dst)
     if d and not os.path.isdir(d):
         os.makedirs(d)
     with open(src, "rb") as fh:
         data = fh.read()
+    # CircuitPython does not skip a UTF-8 BOM. It reaches those three bytes
+    # before the first line and reports "line 1: SyntaxError: invalid syntax",
+    # pointing at a docstring that is perfectly valid -- a dead end for a
+    # student. Strip it rather than ship a file the board cannot parse, but say
+    # so, because the editor that wrote it will keep writing it.
+    if src.endswith(".py") and data.startswith(BOM):
+        data = data[len(BOM):]
+        print(f"[sync] stripped a UTF-8 BOM from {os.path.basename(src)} -- "
+              f"the board cannot parse one. Save it as UTF-8 without BOM.")
     with open(dst, "wb") as fh:
         fh.write(data)
 

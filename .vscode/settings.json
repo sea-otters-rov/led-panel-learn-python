@@ -8,6 +8,10 @@
   // ---------------------------------------------------------------------------
   "files.autoSave": "off",
 
+  // CircuitPython does not skip a UTF-8 BOM: it reports a SyntaxError on line 1
+  // pointing at a valid docstring. Be explicit rather than trusting the default.
+  "files.encoding": "utf8",
+
   "emeraldwalk.runonsave": {
     "commands": [
       {
