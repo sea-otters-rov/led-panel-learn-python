@@ -34,7 +34,14 @@ user another approval prompt. Run them from the repo root, one per call:
     .\.venv\Scripts\python.exe .\tools\verify_board.py
     & .\tools\sync.ps1
     & .\tools\sync.ps1 -Clean
+    git add -A
     git commit --quiet -F .commitmsg
+
+**Never `git add <paths>`.** Every distinct file list is a different string, so
+it can never be allowlisted — it prompts every single time. Stage everything and
+say in the message what the commit covers. If the working tree holds someone
+else's unfinished work, ask before committing rather than reaching for a path
+list.
 
 Full-sync instead of `sync.py <path>`; the path varies, the full sync does not.
 Write commit messages to `.commitmsg` (gitignored) rather than a temp file whose

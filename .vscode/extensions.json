@@ -4,6 +4,7 @@
     "ms-python.vscode-pylance",
     "ms-vscode.vscode-serial-monitor",
     "emeraldwalk.runonsave",
-    "charliermarsh.ruff"
+    "charliermarsh.ruff",
+    "spmeesseman.vscode-taskexplorer"
   ]
 }

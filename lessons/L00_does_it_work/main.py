@@ -11,19 +11,18 @@ banner and then the new "showing:" line.
 
 """
 
-import random
 import time
 
+import colors
 import displayio
+import rainbowio
 import terminalio
 from adafruit_display_text import label
 from adafruit_matrixportal.matrix import Matrix
 
 MESSAGE = "hello"
-COLOR = 0x00A0FF
+COLOR = colors.BLUE
 
-# The MatrixPortal drives the panel from the board's own pins, so there is no
-# wiring to describe here -- just the panel's size.
 matrix = Matrix(width=64, height=32, bit_depth=4)
 display = matrix.display
 
@@ -38,6 +37,10 @@ display.root_group = group
 
 print("showing:", MESSAGE)
 
+idx = 0
 while True:
-    time.sleep(1)
-    text.color = random.randint(0, 0xFFFFFF)
+    time.sleep(0.05)
+    text.color = rainbowio.colorwheel(idx)
+    idx += 1
+    if idx >= 256:
+        idx = 0

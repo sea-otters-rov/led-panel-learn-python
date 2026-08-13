@@ -75,7 +75,11 @@ foreach ($ext in @(
     'emeraldwalk.runonsave',
     # Linting. ruff.toml exempts lessons\code.py from F401 -- see the comment
     # there before turning on fix-on-save, which would delete the launcher.
-    'charliermarsh.ruff'
+    'charliermarsh.ruff',
+    # Task list in the sidebar, so lessons and board tasks are clickable rather
+    # than buried in the command palette. Its defaults are narrowed in
+    # .vscode\settings.json -- see the note there.
+    'spmeesseman.vscode-taskexplorer'
 )) {
     if ($installed -contains $ext) {
         Ok "$ext (already installed)"

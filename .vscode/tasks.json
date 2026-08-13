@@ -1,19 +1,33 @@
 {
+  // Every task is "process", not "shell", on purpose.
+  //
+  // A "shell" task runs through the default terminal profile. If that profile
+  // is WSL -- and it is on at least one machine here -- VS Code tries to run
+  // the Windows python.exe inside Ubuntu and every task dies with
+  // "execvpe(...) failed: No such file or directory".
+  //
+  // "process" spawns the executable directly, so the terminal profile is
+  // irrelevant and there is no shell quoting to get wrong. None of these tasks
+  // needs a shell: they are all an executable plus arguments.
   "version": "2.0.0",
   "tasks": [
     {
       "label": "Lessons: choose one",
       "detail": "Show every lesson with its description, and switch the board to the one you pick.",
-      "type": "shell",
+      "type": "process",
       "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
       "args": ["${workspaceFolder}\\tools\\lesson.py"],
       "problemMatcher": [],
+      // Default build task, so Ctrl+Shift+B opens the picker directly. It is
+      // the only task keystroke that can ship in the repo -- VS Code keybindings
+      // are user-level and cannot be committed to a workspace.
+      "group": { "kind": "build", "isDefault": true },
       "presentation": { "reveal": "always", "panel": "dedicated", "focus": true }
     },
     {
       "label": "Board: sync all files",
       "detail": "Copy everything in lessons\\ to the CIRCUITPY drive.",
-      "type": "shell",
+      "type": "process",
       "command": "powershell",
       "args": [
         "-NoProfile", "-ExecutionPolicy", "Bypass",
@@ -25,7 +39,7 @@
     {
       "label": "Board: sync all files (clean)",
       "detail": "Sync, then DELETE anything on the board that is not in lessons\\. Use on a fresh board to remove the factory demo.",
-      "type": "shell",
+      "type": "process",
       "command": "powershell",
       "args": [
         "-NoProfile", "-ExecutionPolicy", "Bypass",
@@ -37,7 +51,7 @@
     {
       "label": "Board: verify",
       "detail": "Force a reload and report what the board printed. Close the Serial Monitor first -- the port is exclusive.",
-      "type": "shell",
+      "type": "process",
       "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
       "args": ["${workspaceFolder}\\tools\\verify_board.py"],
       "problemMatcher": [],
@@ -46,7 +60,7 @@
     {
       "label": "Board: erase a corrupted filesystem",
       "detail": "Last resort. Wipes the board, then run 'Board: sync all files (clean)' to put everything back. Close the Serial Monitor first.",
-      "type": "shell",
+      "type": "process",
       "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
       "args": ["${workspaceFolder}\\tools\\reset_board.py", "--yes"],
       "problemMatcher": [],
@@ -55,7 +69,7 @@
     {
       "label": "Board: serial console",
       "detail": "miniterm. Ctrl-C breaks to the REPL, Ctrl-D reloads, Ctrl-] quits. Close the Serial Monitor panel first.",
-      "type": "shell",
+      "type": "process",
       "command": "powershell",
       "args": [
         "-NoProfile", "-ExecutionPolicy", "Bypass",
@@ -67,7 +81,7 @@
     {
       "label": "Board: install libraries into lessons\\lib",
       "detail": "Run circup against the local lessons\\ folder using device-requirements.txt.",
-      "type": "shell",
+      "type": "process",
       "command": "${workspaceFolder}\\.venv\\Scripts\\circup.exe",
       "args": [
         "--path", "${workspaceFolder}\\lessons",
@@ -81,7 +95,7 @@
     {
       "label": "Board: set up this machine",
       "detail": "First-run setup: extensions, .venv, stubs, libraries.",
-      "type": "shell",
+      "type": "process",
       "command": "powershell",
       "args": [
         "-NoProfile", "-ExecutionPolicy", "Bypass",

@@ -3,10 +3,15 @@
   // Save = deploy.
   //
   // Ctrl+S writes the file to the CIRCUITPY drive, CircuitPython notices the
-  // write and restarts code.py. Autosave is deliberately OFF: with it on, every
-  // pause in typing would push a half-written file to the board and restart it.
+  // write and restarts code.py.
+  //
+  // onFocusChange, NOT afterDelay. afterDelay is the dangerous one: it fires on
+  // every pause in typing and would push half-written files to the board
+  // mid-edit. onFocusChange only fires when you leave the editor, by which point
+  // you have stopped typing -- and it means switching tabs or alt-tabbing away
+  // cannot lose work, which "off" does not protect against.
   // ---------------------------------------------------------------------------
-  "files.autoSave": "off",
+  "files.autoSave": "onFocusChange",
 
   // CircuitPython does not skip a UTF-8 BOM: it reports a SyntaxError on line 1
   // pointing at a valid docstring. Be explicit rather than trusting the default.
@@ -43,6 +48,49 @@
   // Serial console. Port and baud are picked in the Serial Monitor panel;
   // USB CDC ignores baud entirely, so any value works.
   "vscode-serial-monitor.lineEnding": "\r\n",
+
+  // ---------------------------------------------------------------------------
+  // Task Explorer: the sidebar list of tasks.
+  //
+  // Only "workspace" is on -- that is tasks.json, which is the list students are
+  // meant to see. Every other provider is off ON PURPOSE, not for tidiness:
+  // the defaults enable python, powershell, bash, batch, npm, eslint and tsc,
+  // which would surface every .py and .ps1 in the repo as a clickable task. A
+  // student clicking lessons\L00_does_it_work\main.py would run it on the
+  // laptop, where board and displayio do not exist, and get a traceback with
+  // nothing to do with their lesson.
+  //
+  // This object replaces the default wholesale rather than merging, so every
+  // provider is listed explicitly. Add new keys here if the extension adds them.
+  // ---------------------------------------------------------------------------
+  "taskexplorer.enableSideBar": true,
+  "taskexplorer.enabledTasks": {
+    "ant": false,
+    "apppublisher": false,
+    "bash": false,
+    "batch": false,
+    "composer": false,
+    "eslint": false,
+    "gradle": false,
+    "grunt": false,
+    "gulp": false,
+    "jenkins": false,
+    "laravel": false,
+    "make": false,
+    "maven": false,
+    "nodejs": false,
+    "npm": false,
+    "nsis": false,
+    "perl": false,
+    "pipenv": false,
+    "powershell": false,
+    "python": false,
+    "ruby": false,
+    "tsc": false,
+    "webpack": false,
+    "webpackwrap": false,
+    "workspace": true
+  },
 
   "[python]": {
     "editor.tabSize": 4,

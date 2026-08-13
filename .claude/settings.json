@@ -5,6 +5,8 @@
       "Read(**)",
       "Edit(**)",
       "Write(**)",
+      "Glob",
+      "Grep",
 
       "PowerShell(.\\\\.venv\\\\Scripts\\\\python.exe .\\\\tools\\\\verify_board.py)",
       "PowerShell(& .\\\\tools\\\\sync.ps1)",

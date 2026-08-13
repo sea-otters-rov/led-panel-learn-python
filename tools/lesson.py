@@ -20,7 +20,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from sync import LESSONS, cached, copy, discover
 
-IMPORT_RE = re.compile(r"^from\s+(\w+)\s+import\s+main\s*$", re.MULTILINE)
+# [ \t]* rather than \s*: \s is greedy across newlines, so it ate the file's
+# trailing newline and every switch left code.py without one.
+IMPORT_RE = re.compile(r"^from\s+(\w+)\s+import\s+main[ \t]*$", re.MULTILINE)
 CODE_PY = os.path.join(LESSONS, "code.py")
 
 
