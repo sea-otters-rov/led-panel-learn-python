@@ -217,5 +217,14 @@ Dev environment: done, verified end to end on hardware (2026-08-10).
 works. The `device\` folder is gone; it was renamed, not copied, so
 `git log --follow` still tracks the history.
 
-Writing the actual lesson sequence is the next piece of work. Whether it should
-assume zero prior programming experience is still an open question.
+Writing the actual lesson sequence is the next piece of work.
+
+**Audience, decided:** high school students, most with *some* programming
+experience — a class, a little Python or Java, some Scratch — but not to be
+relied on. Start from the basics and move quickly. The test for a lesson is that
+nobody is lost at lesson 1 and nobody is bored by lesson 3. Assume no prior
+knowledge of hardware, `displayio`, or the board.
+
+Scope is the 64x32 matrix and the onboard LIS3DH accelerometer. No WiFi — the
+ESP32 co-processor would have to be driven over SPI by hand, which is a long way
+past the point of this course.
