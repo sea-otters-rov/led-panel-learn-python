@@ -43,6 +43,15 @@ say in the message what the commit covers. If the working tree holds someone
 else's unfinished work, ask before committing rather than reaching for a path
 list.
 
+**Switch lessons by editing `lessons\code.py`, then full-syncing.** Never
+`tools\lesson.py <name>` — the lesson name is an argument, so every switch is a
+different command string and prompts every single time, exactly like
+`git add <paths>`. Editing the one import line and running `& .\tools\sync.ps1`
+uses only operations that are already allowlisted. `lesson.py` stays for
+students, who click the task and never go through these rules.
+(`.\.venv\Scripts\python.exe .\tools\lesson.py list` is invariant, so that one
+can be allowlisted if you want the catalogue.)
+
 Full-sync instead of `sync.py <path>`; the path varies, the full sync does not.
 Write commit messages to `.commitmsg` (gitignored) rather than a temp file whose
 name changes. Never prefix git with `cd` or `git -C` — the rule matches on the
@@ -180,6 +189,105 @@ Two things that survey turned up, both worth more than the 13 ms:
 `adafruit_display_text` is the largest real library cost at 34.8 ms — still 4%
 of a save, and the lessons need it. There is no import trimming worth doing.
 
+## Drawing
+
+**`screen.py` at the board root owns all display and sensor setup**, and hands
+back real display objects — a lesson only ever touches `.x`, `.y`, `.text`,
+`.color`, `.hidden`. Students never see `Matrix`, `Group`, `Palette`, or
+`TileGrid`. The rule that keeps this coherent: **lessons get visible things from
+`screen`, and only from `screen`.** The backing implementation is then free to
+change without touching a lesson.
+
+**`screen.block()` is backed by `vectorio.Rectangle`, not `Bitmap` + `TileGrid`.**
+Measured on hardware 2026-08-13, 40 moving 2×2 objects, 60 frames, each owning
+its palette so colours can differ:
+
+    variant                              bytes each   ms/frame
+    Bitmap + Palette + TileGrid               214.8     17.395
+    vectorio.Rectangle + Palette              134.8     13.184
+
+37% less RAM and 24% less compositing time, for a *simpler* five-line
+constructor and no library cost — `vectorio` is frozen into the firmware
+(`Circle`, `Polygon`, `Rectangle`).
+
+**Practical ceiling is a few hundred `screen.block()` objects.** Measured on the
+board 2026-08-13 with the falling-stars lesson: 100 is smooth, 500 is visibly
+slow, 1000 runs out of memory. Nothing in the course goes past ~30, so this is
+headroom rather than a constraint — but it is the number to quote when a student
+asks how many they can have.
+
+**`displayio` auto-refresh tears once a loop moves many objects.** The background
+refresh fires between bytecodes, so with ~100 moving blocks it composites a
+half-updated frame. `screen.draw()` sets `auto_refresh = False` on first call and
+refreshes explicitly. It is **opt-in** — lessons that never call it keep
+auto-refresh and cannot freeze, so nothing needed retrofitting.
+
+**Off-screen positions clip silently; they do not raise.** Verified for both
+backings at `(70, 40)`, `(-10, -5)`, `(63, 31)`, `(-3, 16)`. This is
+load-bearing: it is what lets the accelerometer lesson land *before* `if`, with
+no bounds test in front of a beginner. **Re-verify it if the backing ever
+changes again.**
+
+**`vectorio.Polygon` is unusable.** Same measurement run:
+
+    vectorio.Circle r=1                       134.8     21.832
+    vectorio.Polygon 3-point triangle         118.8    104.834
+    vectorio.Polygon 10-point star            150.8    152.783
+
+Polygon is 6–9× slower than a rectangle — 40 of them is 7 fps.
+
+**`vectorio.Circle` is the wrong shape at these sizes, not the wrong speed.**
+Mapped with `contains(x, y)` on hardware 2026-08-13: radius 2 rasterises to a
+5×5 diamond, and radii 3–4 grow single-pixel spikes off each side. Its 0.55 ms
+per object only matters past ~50 objects, so speed was never the real objection.
+
+**`screen.circle(size, color)` is a `Bitmap` + `TileGrid` instead**, lighting a
+pixel where `across² + down² <= edge² + 0.5`. That 0.5 is load-bearing: without
+it a 4×4 collapses to a 2×2 square. Sizes 4, 6, 8 come out convincingly round;
+3 becomes a plus. `make_transparent(0)` keeps the corners see-through.
+
+**A `TileGrid` can hold an animation, and the frame index is free state.** One
+wide `Bitmap` holds N frames side by side; `tile_width`/`tile_height` slice it,
+and `shape[0] = n` picks the frame (readable too). `screen.burst()` uses this for
+an expanding ring, and caches the sheet by `(size, frames)` so fifty fireworks
+share one bitmap and pay only for their own `Palette`. Because the index reads
+back, **it doubles as per-object state** — the same trick as reading the palette
+for brightness, and it is what keeps the course clear of parallel lists and
+index iteration.
+
+**`ValueError: tile must be 0--1` means zero tiles, not "0 to 1".** It is
+`0` to `count - 1` with `count == 0`, printed without a space. Cause is a sheet
+built with `frames = 0` — usually an argument-order slip into `burst()`, which
+every-argument-is-an-int makes invisible to Pylance. `burst()` now raises a named
+error for `frames < 1` instead.
+
+**Draw order is creation order and never changes on its own.** Lighting a
+different pooled object does *not* bring it forward. `screen.bring_to_front()`
+removes and re-appends it to the group, which is the only way to reorder.
+
+**It is the one thing `screen.py` returns without a pixel `.width`.**
+`TileGrid.width` counts *tiles*, so it reads 1 — `tile_width` holds the pixels.
+`vectorio.Rectangle.width` is pixels. A lesson using a circle must therefore keep
+its size in a variable rather than reaching for `.width`, or
+`max_x = screen.WIDTH - ball.width` silently lets the ball overhang the edge.
+
+`adafruit_display_shapes` is **not** installed and should not be — `vectorio`
+already does this for free, and `Rect` would collide with `screen.block()` for
+no gain.
+
+**Type hints in board-side code are safe.** `screen.py` carries
+`def tilt() -> tuple[float, float, float]` and `width: int` parameters, verified
+running on hardware 2026-08-13. CircuitPython's compiler discards function
+annotations rather than evaluating them, so `tuple[...]` never executes even
+though CircuitPython has no `tuple.__class_getitem__`. They still cost a little
+compile time on every reload, since source is recompiled each time — worth it in
+`screen.py`, not worth it in a lesson file.
+
+**They earn their place by catching lesson traps early.** L04 asks the student
+to delete an `int()`; because `block()` is annotated, Pylance red-squiggles it
+in the editor and says why, *before* the board ever runs it. Keep `screen.py`
+annotated for this reason, not just for autocomplete.
+
 ## Colour
 
 There is no `enum` module in CircuitPython — checked on the board, it is absent.
@@ -217,7 +325,16 @@ Dev environment: done, verified end to end on hardware (2026-08-10).
 works. The `device\` folder is gone; it was renamed, not copied, so
 `git log --follow` still tracks the history.
 
-Writing the actual lesson sequence is the next piece of work.
+**The sequence, the `screen.py` API, and the house style for lesson code live in
+`docs\lesson-plan.md` — read it before writing a lesson.**
+
+Lessons 01–09 are written and verified on hardware. Remaining: 10 (a live score
+on screen), 11 (nested loops, the brick wall), 12 (Breakout, as a scaffold with
+TODOs). `L00_does_it_work` is superseded by L01 and can be deleted.
+
+The accelerometer lessons are groundwork for students eventually using an
+accelerometer to **self-level an ROV**, which is why `screen.tilt()` returns all
+three axes rather than the two the matrix needs.
 
 **Audience, decided:** high school students, most with *some* programming
 experience — a class, a little Python or Java, some Scratch — but not to be

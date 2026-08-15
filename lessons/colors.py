@@ -40,3 +40,16 @@ OLD_LACE = 0xFDF5E6
 
 # Handy for stepping through a rainbow one colour at a time.
 RAINBOW = (RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE)
+
+
+def dim(color, level):
+    """The same colour, only darker. level 1.0 is full, 0.0 is off.
+
+    A colour is one number holding three, so this pulls red, green and blue
+    apart, shrinks each of them, and packs them back together. Keep dimming and
+    it eventually lands exactly on BLACK.
+    """
+    red = (color >> 16) & 0xFF
+    green = (color >> 8) & 0xFF
+    blue = color & 0xFF
+    return (int(red * level) << 16) + (int(green * level) << 8) + int(blue * level)
