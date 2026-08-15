@@ -294,6 +294,9 @@ There is no `enum` module in CircuitPython — checked on the board, it is absen
 
 - **`rainbowio.colorwheel(0..255)` is built into the firmware.** 0.1 ms to
   import, returns a packed `0xRRGGBB` int. Use it for anything that cycles.
+  Values above 255 **wrap** rather than raising — verified to 1000 — so a lesson
+  can hand it `index * 30` without bounds-checking. Negative values return a
+  negative int, which is not a usable colour.
 - **`lessons\colors.py` owns the names** — `RED`, `CYAN`, `AMBER`, `GOLD`,
   `JADE`, `OLD_LACE`, `RAINBOW`. It lives at the board root, so `import colors`
   works from inside any lesson folder even though a lesson's own siblings do
@@ -328,9 +331,10 @@ works. The `device\` folder is gone; it was renamed, not copied, so
 **The sequence, the `screen.py` API, and the house style for lesson code live in
 `docs\lesson-plan.md` — read it before writing a lesson.**
 
-Lessons 01–09 are written and verified on hardware. Remaining: 10 (a live score
-on screen), 11 (nested loops, the brick wall), 12 (Breakout, as a scaffold with
-TODOs). `L00_does_it_work` is superseded by L01 and can be deleted.
+**Lessons 01–12 are written and verified on hardware.** 12 is the Breakout
+capstone and ships as a working scaffold: the wall, the paddle, the score and a
+four-wall bounce all run, and four `TODO`s add the collisions and the losing
+condition. `L00_does_it_work` is superseded by L01 and can be deleted.
 
 The accelerometer lessons are groundwork for students eventually using an
 accelerometer to **self-level an ROV**, which is why `screen.tilt()` returns all

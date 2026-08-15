@@ -7,6 +7,7 @@ row the inner one runs all the way across. Two loops, a whole grid.
 import time
 
 import colors
+import rainbowio
 import screen
 from vectorio import Rectangle
 
@@ -32,7 +33,8 @@ bricks: list[Rectangle] = []
 # times eight columns is twenty-four trips through the middle.
 for row in range(brick_rows):
     for column in range(brick_columns):
-        brick = screen.block(brick_width, brick_height, colors.RAINBOW[row])
+        color = rainbowio.colorwheel(row * 30)
+        brick = screen.block(brick_width, brick_height, color)
         brick.x = column * (brick_width + brick_gap)
         brick.y = row * (brick_height + brick_gap)
         bricks.append(brick)
@@ -54,13 +56,13 @@ def touching(brick):
     """
     if brick.hidden:
         return False  # already knocked out, nothing left to hit
-    if ball.x + ball_size < brick.x:
+    elif ball.x + ball_size < brick.x:
         return False  # ball is off to the left of it
-    if ball.x > brick.x + brick_width:
+    elif ball.x > brick.x + brick_width:
         return False  # off to the right
-    if ball.y + ball_size < brick.y:
+    elif ball.y + ball_size < brick.y:
         return False  # above it
-    if ball.y > brick.y + brick_height:
+    elif ball.y > brick.y + brick_height:
         return False  # below it
     return True
 
@@ -92,9 +94,9 @@ while True:
     time.sleep(0.03)
 
 # Try these:
-#   - Set brick_rows to 6. Then try 7 and read the error. How many colours does
-#     colors.RAINBOW actually have?
-#   - Swap the two for lines around. The wall still builds -- so what did change?
+#   - Try having the colors change by column instead of by row. Now try to make every block be a different color!
+#   - Swap the row and columns loops around on line 34,35. The wall still builds -- so what changed?
+#     Hint: What if the bricks overlapped?
 #   - Set brick_gap to 2. The right-hand column falls off the screen. What else
 #     has to change so eight bricks still fit?
 #   - Once the wall is gone, bring it all back with a loop of your own.
