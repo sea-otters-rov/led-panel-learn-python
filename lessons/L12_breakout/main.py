@@ -1,7 +1,7 @@
 """Build the whole game: tilt, bounce, bricks and a score.
 
 Nothing in here is new. The wall is lesson 11, the paddle is lessons 4 and 5,
-the bouncing is lesson 6, the score is lesson 10. Four pieces are missing --
+the bouncing is lesson 6, the score is lesson 10. Five pieces are missing --
 search for TODO and fill them in, in order.
 
 Right now the ball just rattles around the box. By the end it should be a game.
@@ -118,13 +118,15 @@ while True:
     #   away and decide what a miss should cost -- back to the middle? a life?
     #   game over? It is your game.
 
+    # TODO 5: what happens when all the bricks are cleared? Is that the end of
+    #   the game? Or just the end of level 1...
+
     screen.draw()
 
     time.sleep(0.03)
 
 # Once it plays, make it yours:
 #   - Speed the ball up a little with every brick, so it gets harder.
-#   - Give the ball a colour that changes with how fast it is going.
-#   - Hit the paddle near the edge and send the ball off at a steeper angle.
+#   - Give the ball a color that changes with how fast it is going.
+#   - Change the ball trajectory based on where it hits the paddle.
 #   - Three lives, shown as three small blocks in a corner.
-#   - Clear the wall and put it straight back up, one row faster.
