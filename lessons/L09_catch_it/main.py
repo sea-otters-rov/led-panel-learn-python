@@ -98,5 +98,3 @@ while True:
 #   - Make paddle_width smaller. How narrow before it stops being fun?
 #   - Raise dot_count. How many can you actually track at once?
 #   - Delete the first test in on_the_paddle. What does it catch now, and where?
-#   - Speed the game up every time you catch one, so it gets harder as you go.
-#   - A miss costs you nothing right now. Make the game stop after 5 of them.

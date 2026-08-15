@@ -5,4 +5,4 @@ That is the only reason to edit this file -- your actual work happens in the
 lesson file itself.
 """
 
-from L10_keep_score import main
+from L11_brick_wall import main

@@ -40,8 +40,7 @@ caught = 0
 missed = 0
 
 # Made last of everything, so the numbers draw on top of the dots instead of
-# disappearing behind them. Remember .y is the MIDDLE of the text, so 6 is about
-# as high as these can sit before their tops get cut off.
+# disappearing behind them. Remember .y is the MIDDLE of the text.
 caught_sign = screen.text("0", colors.GOLD, 1, 6)
 missed_sign = screen.text("0", colors.RED, 52, 6)
 
@@ -96,12 +95,7 @@ while True:
     time.sleep(wait_time)
 
 # Try these:
-#   - Delete the str( ) so the line reads caught_sign.text = caught. It breaks,
-#     and the error is a long one from deep inside the text library. Ignore all
-#     of that and read only the LAST line: why would a number not have a .find,
-#     and what does that tell you a sign wants to be given?
-#   - Show "got 3" instead of a bare 3. An f-string from lesson 1 does it.
 #   - Turn caught_sign green once you get past 10.
-#   - Move a sign to the bottom of the screen. What does it end up fighting with?
-#   - Count the misses DOWN from 5 instead of up from 0, like lives. What should
-#     happen when it reaches 0?
+#   - What happens if you miss more than 99? How would you fix that?
+#   - Speed the game up every time you catch one, so it gets harder as you go.
+#   - A miss costs you nothing right now. Make it reset your count and speed.
