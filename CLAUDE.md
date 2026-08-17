@@ -331,10 +331,11 @@ works. The `device\` folder is gone; it was renamed, not copied, so
 **The sequence, the `screen.py` API, and the house style for lesson code live in
 `docs\lesson-plan.md` — read it before writing a lesson.**
 
-**Lessons 01–12 are written and verified on hardware.** 12 is the Breakout
-capstone and ships as a working scaffold: the wall, the paddle, the score and a
-four-wall bounce all run, and four `TODO`s add the collisions and the losing
-condition. `L00_does_it_work` is superseded by L01 and can be deleted.
+**Lessons 01–12 are written and verified on hardware**, plus
+`L99_breakout_done`, a worked answer to the capstone. 12 ships as a working
+scaffold: the wall, the paddle, the score and a four-wall bounce all run, and
+five `TODO`s add the collisions, the losing condition and the next level.
+`L00_does_it_work` has been deleted; L01 took over its smoke-test job.
 
 The accelerometer lessons are groundwork for students eventually using an
 accelerometer to **self-level an ROV**, which is why `screen.tilt()` returns all
