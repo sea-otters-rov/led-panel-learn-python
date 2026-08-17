@@ -329,7 +329,12 @@ works. The `device\` folder is gone; it was renamed, not copied, so
 `git log --follow` still tracks the history.
 
 **The sequence, the `screen.py` API, and the house style for lesson code live in
-`docs\lesson-plan.md` — read it before writing a lesson.**
+`docs\lesson-plan-notes.md` — read it before writing a lesson.** Keep it true:
+it drifted badly once and had to be re-audited against the files.
+
+`docs\lesson-plan.md` is a different document — one page for students and
+parents, listing what each lesson builds. It carries no internals, and it does
+not mention `L99_breakout_done`.
 
 **Lessons 01–12 are written and verified on hardware**, plus
 `L99_breakout_done`, a worked answer to the capstone. 12 ships as a working
