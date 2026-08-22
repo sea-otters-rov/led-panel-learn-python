@@ -37,7 +37,7 @@ screen.hold()  # halt with your words up, or the console takes the screen back
 # Try these:
 #   - Make text_message your name
 #   - Change the color components. What makes yellow?
-#   - Set `text_x = 0` and `text_y = 4`. Part of the text goes missing. Why?
+#   - Set `text_x = 0` and `text_y = 0`. Part of the text goes missing. Why?
 #   - Try a really long message.
 #   - Where will `text_x = 2+3` end up? What will `text_message = "hi!"+"bye!"` do?
 #      What is going on if you try `text_message = "hi!"+3`?
