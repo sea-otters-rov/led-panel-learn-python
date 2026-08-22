@@ -14,3 +14,5 @@ tools/.circuitpy
 # Scratch commit message. A fixed path, so one permission rule covers every
 # commit instead of one per temp filename.
 .commitmsg
+
+lessons/L99*
