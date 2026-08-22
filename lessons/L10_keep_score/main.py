@@ -80,8 +80,8 @@ while True:
             caught = caught + 1
             drop(dot)
             # .text works like .x did -- hand it something new and the screen
-            # changes. str() turns the number into letters first, because a
-            # sign on the screen only knows how to show letters.
+            # changes. str() turns the number into text first, because as we
+            # saw in lesson 1, a sign needs a string of characters.
             caught_sign.text = str(caught)
             print(f"caught! the gold sign now reads {caught_sign.text}")
         elif dot.y > screen.HEIGHT:

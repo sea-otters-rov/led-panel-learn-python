@@ -25,7 +25,7 @@ print(
 screen.hold()  # halt with your block up, or the console takes the screen back
 
 # Try these:
-#   - Set second_block.y = 0, save, then second_block.y = 31. Which way did it move?
+#   - Set second_block.y = 0, save, then second_block.y = 31. What happened to it?
 #   - Move the second_block to different corners. What are the four pairs of numbers?
 #       Does the first_block sit on top or get hidden underneath?
 #   - Change screen.block(3, 3, ...) to screen.block(20, 2, ...) for a long bar

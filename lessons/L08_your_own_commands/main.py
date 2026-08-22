@@ -34,12 +34,13 @@ for index in range(firework_count):
     fireworks.append(firework)
 
 
+# Functions can return a value you can reuse elsewhere
 def get_random_color() -> int:
     """Pick a random color from the rainbow."""
     return rainbowio.colorwheel(random.randint(0, 255))
 
 
-firework_index = 0  # which firework to light next
+firework_index = 0  # which firework to light next, start at the beginning of the list
 
 
 # Show a firework somewhere on the screen, and give it a random color
@@ -59,7 +60,7 @@ def light():
         firework.hidden = False
 
 
-# Command two. It takes a firework and changes it, and hands nothing back.
+# It takes a firework and changes it.
 def step(firework):
     # Grow the ring until it reaches its last picture, then leave it there.
     frame = screen.frame_of(firework)
@@ -73,7 +74,6 @@ def step(firework):
             firework.hidden = True
 
 
-last_launch = time.monotonic()
 print(f"nudge the board -- {firework_count} fireworks ready")
 
 while True:
@@ -86,18 +86,19 @@ while True:
     force = screen.force()
     if force > nudge_force:
         light()
-        last_launch = time.monotonic()
+        screen.timer_reset()
         print(f"nudge {force:.1f}")
 
     # Nothing for a while? Send one up on its own so the screen is never empty.
-    if time.monotonic() - last_launch > quiet_seconds:
+    # timer_elapsed gives the number to seconds since we called timer_reset.
+    if screen.timer_elapsed() > quiet_seconds:
         light()
-        last_launch = time.monotonic()
+        screen.timer_reset()  # resets timer_elapsed to 0
         print("quiet -- sent one up")
 
     screen.draw()
 
-    time.sleep(0.01)
+    time.sleep(0.03)
 
 # Try these:
 #   - Change fade_rate to 0.99, then 0.75. How long does a firework last?

@@ -12,8 +12,7 @@ import screen
 from displayio import TileGrid
 
 # Normally the board has to be tipped a long way to reach the edge of the screen.
-# For a game that just means waving it about, which these panels do not enjoy.
-# Lower this and a small tilt goes all the way across.
+# Lowering it can make it easier to control, but too low and it gets twitchy
 screen.FULL_TILT = 4.0
 
 paddle_width = 12
@@ -93,7 +92,7 @@ while True:
 
 # Try these:
 #   - screen.FULL_TILT sets how far you have to tip to reach the edge. Try 9,
-#     which is the normal setting, then try 1.5. Can you think of a better way to
+#     which is a full tilt, then try 1.5. Can you think of a better way to
 #     make it responsive without it getting twitchy?
 #   - Make paddle_width smaller. How narrow before it stops being fun?
 #   - Raise dot_count. How many can you actually track at once?

@@ -21,6 +21,10 @@ _display = Matrix(width=WIDTH, height=HEIGHT, bit_depth=4).display
 _group = displayio.Group()
 _display.root_group = _group
 
+# UUsed for timer_elapsed and timer_reset
+_timer = time.monotonic()
+
+
 # Filled in the first time something asks for a tilt reading, so lessons that
 # never touch the sensor don't pay to import it.
 _sensor = None
@@ -31,7 +35,7 @@ _sensor = None
 #
 #     screen.FULL_TILT = 3.0    # about 19 degrees instead of the usual 76
 #
-FULL_TILT = 9.0
+FULL_TILT = 7.0
 
 # The sensor never reads exactly zero, even sitting still. Anything smaller than
 # this counts as "not moving" so nothing drifts on its own. In sensor units, NOT
@@ -150,13 +154,13 @@ def frame_of(shape) -> int:
 
 
 def recolor(shape, color: int):
-    """Change the colour of a block or circle you already made."""
+    """Change the color of a block or circle you already made."""
     palette = shape.pixel_shader
     palette[len(palette) - 1] = color
 
 
 def color_of(shape) -> int:
-    """What colour a block or circle is right now."""
+    """What color a block or circle is right now."""
     palette = shape.pixel_shader
     return palette[len(palette) - 1]
 
@@ -199,9 +203,20 @@ def draw():
 
 
 def hold():
-    """Keep what you drew on the screen. Soon you will write this yourself."""
+    """Keep what you drew on the screen."""
     while True:
         time.sleep(1)
+
+
+def timer_reset() -> None:
+    """Start timer_elapsed over from zero"""
+    global _timer
+    _timer = time.monotonic()
+
+
+def timer_elapsed() -> float:
+    """Seconds since last call to timer_reset"""
+    return time.monotonic() - _timer
 
 
 def _readings() -> tuple[float, float, float]:
