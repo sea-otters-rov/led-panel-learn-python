@@ -8,11 +8,20 @@ Everything here hands back an ordinary displayio object, so anything you
 read about displayio elsewhere still works on it.
 """
 
+import sys
 import time
 
 import displayio
 import vectorio
 from adafruit_matrixportal.matrix import Matrix
+
+# VSCode sees this block as True, but CircuitPython runs it as False
+if sys.implementation.name == "circuitpython":
+    # On the microcontroller, define a dummy object so code doesn't crash
+    TYPE_CHECKING = False
+else:
+    # VSCode reads this path to power autocomplete
+    from typing import TYPE_CHECKING, Literal
 
 WIDTH = 64
 HEIGHT = 32
@@ -21,7 +30,7 @@ _display = Matrix(width=WIDTH, height=HEIGHT, bit_depth=4).display
 _group = displayio.Group()
 _display.root_group = _group
 
-# UUsed for timer_elapsed and timer_reset
+# Used for timer_elapsed and timer_reset
 _timer = time.monotonic()
 
 
@@ -165,12 +174,49 @@ def color_of(shape) -> int:
     return palette[len(palette) - 1]
 
 
-def text(message: str, color: int, x: int = 0, y: int = 0):
-    """Words on the screen. x,y is the left _center_ of the text."""
-    import terminalio
+class Fonts:
+    """The sizes screen.text() can draw in.
+
+    Not an Enum -- CircuitPython has no `enum` module. Plain class attributes
+    autocomplete just as well, and the Literal annotations are what make the
+    editor offer these two by name when you type `font=`.
+    """
+
+    NORMAL = "normal"  # letters 6 wide and 12 tall
+    SMALL = "small"  # letters 3 wide and 5 tall
+
+
+def text(
+    message: str,
+    color: int,
+    x: int = 0,
+    y: int = 0,
+    font: 'Literal["normal", "small"]' = Fonts.NORMAL,
+):
+    """Words on the screen. x,y is the left _center_ of the text.
+
+    Pass font=screen.Fonts.SMALL for tiny letters: 16 fit across the screen instead
+    10, and you can stack five lines instead of two. Everything else works the
+    same either way -- change the words with .text, the colour with .color, and
+    move it with .x and .y.
+    """
     from adafruit_display_text import label
 
-    sign = label.Label(terminalio.FONT, text=message, color=color, x=x, y=y)
+    if font == Fonts.SMALL:
+        import font as glyphs
+
+        typeface = glyphs.SMALL
+    elif font == Fonts.NORMAL:
+        import terminalio
+
+        typeface = terminalio.FONT
+    else:
+        # Without this, a typo would quietly hand back the big font instead.
+        raise ValueError(
+            f"font should be screen.Fonts.NORMAL or screen.Fonts.SMALL, not {font!r}"
+        )
+
+    sign = label.Label(typeface, text=message, color=color, x=x, y=y)
     _group.append(sign)
     return sign
 

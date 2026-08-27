@@ -4,6 +4,7 @@ Tilting does not move the ball. It changes the ball's speed, a little bit every
 time round the loop -- which is what pushing something actually means.
 """
 
+import random
 import time
 
 import colors
@@ -61,10 +62,12 @@ while True:
         overshoot = ball_y - max_y
         ball_y = max_y - overshoot
         ball_speed_y = -ball_speed_y
+        screen.recolor(ball, random.choice(colors.RAINBOW))
     elif ball_y < min_y:
         overshoot = min_y - ball_y
         ball_y = min_y + overshoot
         ball_speed_y = -ball_speed_y
+        screen.recolor(ball, random.choice(colors.RAINBOW))
 
     # The screen only has whole pixels, so chop off the decimals.
     ball.x = int(ball_x)

@@ -13,6 +13,75 @@ working *on* the project.
   or off the board: the CIRCUITPY mass-storage drive, and the USB CDC serial
   console. `CIRCUITPY_WIFI_*` and `CIRCUITPY_WEB_API_*` keys in `settings.toml`
   do nothing on this board — the stock Adafruit demo ships with them anyway.
+- **WiFi and sockets work, but only after upgrading the ESP32 firmware.** The
+  factory nina-fw **1.2.2** could associate and resolve DNS, yet *every*
+  `socket_open` failed with `BrokenPipeError: Expected 01 but got 00` — TCP and
+  UDP, unicast and broadcast alike. Modern `adafruit_esp32spi` speaks a
+  `startClient` that old firmware rejects. Flashing the all-in-one AirLift
+  firmware to **3.3.0** fixed it completely. If a board cannot open a socket,
+  check `esp.firmware_version` first.
+
+  Measured on 3.3.0, 2026-08-27:
+
+        connect_AP                        3.9 s, no retries (was 6.8 s and flaky)
+        TCP round trip           best 12.1  avg 16.0  worst 22.9 ms
+        UDP round trip           best 14.7  avg 19.3  worst 56.9 ms, 0/25 lost
+        UDP send, socket_open before each write       7.8 ms   <- do this
+        UDP send, brand new socket each time          8.5 ms
+        socket_available() poll                       1.2 ms
+
+  A frame costs ~9.2 ms of network work (one send plus one receive), which is
+  28% of a 33 ms frame. Affordable, but send every other frame if it gets tight.
+
+- **`socket_write` in UDP mode never clears the radio's send buffer.** Known
+  library bug, `Adafruit_CircuitPython_ESP32SPI` issue #135: in nina-fw only
+  `beginPacket()` resets the buffer, and `sendUdpData` calls `endPacket()`
+  without a `beginPacket()` after it. Write twice on one open socket and the
+  second datagram arrives with the first stuck to the front of it.
+
+  **Call `socket_open` before EVERY write** — `socket_open` is `beginPacket`, so
+  it flushes. Do not "optimise" it away; the board reports success either way
+  and only a second machine listening reveals the corruption. Measured 100/100
+  clean with the fix, and 0 concatenated datagrams over 100 sends.
+
+  This also corrects an earlier note here claiming ~1 send in 10 fails. That was
+  socket-allocation churn, not the network. There is no meaningful UDP loss.
+
+- **UDP receive needs the raw API; the socketpool cannot do it.**
+  `pool.socket(...)` + `bind()` + `recv_into()` hears nothing at all. This works:
+
+        rx = esp.get_socket()
+        esp.start_server(port, rx, conn_mode=esp.UDP_MODE)
+        avail = esp.socket_available(rx)
+        data = esp.socket_read(rx, avail)
+
+  UDP *send* works either way, but keep one socket open and reuse it.
+
+- **Do not mix the raw `esp.get_socket()` API and the socketpool in one program.**
+  A raw `socket_open` followed by a pool socket makes the pool socket fail with
+  the same `BrokenPipeError`; pool first then raw was fine. Since UDP receive
+  has to be raw, use raw throughout for anything with UDP in it.
+
+- **There is no `recvfrom`** — only `recv` and `recv_into` — so a receiver never
+  learns who sent a datagram. Any discovery message must carry the sender's
+  address in its own payload.
+
+- **Broadcast to the subnet (`192.168.1.255`), not `255.255.255.255`.** The
+  global address sends without error but did not arrive; the subnet address is
+  reliable in both directions.
+
+- **The ESP32 cannot keep its association across a reload, and the reset is not
+  optional.** Tested 2026-08-27 both ways. `reset_dio=None` raises
+  (`can't set attribute 'direction'`), and a subclass whose `reset()` skips the
+  pulse then fails on the very first command with
+  `TimeoutError: ESP32 timed out on SPI select` — a soft reboot leaves the two
+  chips out of step on SPI, and the reset pulse is what resynchronises them.
+
+  So every save pays: **0.76 s to reset, plus 2.9–6.8 s for `connect_AP`**
+  (highly variable). A networking lesson must therefore bring the matrix up
+  first and connect *lazily in the background*, showing a status pixel, rather
+  than blocking on the network before anything appears.
+
 - **~2 MB of flash**, ~1.83 MB free with the current library set. Check headroom
   before adding libraries.
 - **The serial port is exclusive.** Only one program can hold it, so the Serial
@@ -261,6 +330,68 @@ built with `frames = 0` — usually an argument-order slip into `burst()`, which
 every-argument-is-an-int makes invisible to Pylance. `burst()` now raises a named
 error for `frames < 1` instead.
 
+**Text costs are not where people assume.** Measured 2026-08-27, five
+characters, three interleaved passes each, `screen.draw()` per frame:
+
+    operation                                 ms/frame   bytes
+    move a block 20x2                             4.49      96
+    move a Label, 6x12 glyphs                     4.61    1936
+    move a Label, 3x5 glyphs                      4.69    2048
+    Label .text = a NEW string, 6x12              9.11
+    Label .text = a NEW string, 3x5               8.98
+    Label .text = the SAME string                 0.39
+    new Label appended every frame               30.27   ~1 KB each, leaked
+
+**Moving a Label is as cheap as moving a block** — the folk belief that text is
+slow to move is wrong. *Changing* it costs ~9 ms, but setting the **same** string
+is nearly free because the library short-circuits, so `sign.text = str(score)`
+every frame is fine. What destroys a frame rate is **creating a Label inside the
+loop**: 30 ms a frame and ~1 KB leaked every frame, because it stays in the
+group. That is the bug to look for when a student says text made things slow.
+
+**One `screen.text(message, color, x, y, font=...)`, two sizes.** `screen.NORMAL`
+is terminalio's 6x12; `screen.SMALL` is a 3x5 font defined in `font.py`. Both
+return an ordinary `Label`, so `.text`, `.color`, `.x`, `.y` and variable-length
+strings behave identically, and `y` is the middle of the line either way. 3x5
+fits 16 characters across and five stacked lines, against 10 and two — which is
+the only way six names fit on a 64x32 panel.
+
+`font.SMALL` is a small class implementing the font protocol: `get_bounding_box()`
+plus `get_glyph(codepoint)` handing back a cached `fontio.Glyph` pointing into a
+tile sheet built once from the `#`/`.` pictures. `fontio.Glyph` is constructible
+from Python, which is the whole reason this works.
+
+**A bare `TileGrid` was built for the small font and then rejected.** It is 2x
+faster on frames where the text changes (4.5 ms vs 9.0), but `Label`
+short-circuits an *unchanged* string at 0.39 ms where a TileGrid rewrite costs
+1.17 ms. For a score that changes once a second at 30 fps that is ~12 ms/sec for
+`Label` against ~39 ms/sec for the TileGrid — **`Label` wins the normal case**,
+and memory is a wash (2048 vs 1936 bytes for five characters) because per-glyph
+overhead dominates, not glyph size. **The small font buys screen space, not
+speed.** Do not reintroduce a second API for it.
+
+**Glyph size barely moves the frame cost.** A 6x12 tile font built from
+`terminalio.FONT`'s own bitmap changed in 8.74 ms against `Label`'s 8.98 — no
+real difference. So converting `screen.text()` to tiles for speed is not worth
+doing. Related and occasionally useful: **`terminalio.FONT` is itself a sprite
+sheet** — `FONT.bitmap` is 570x12, every glyph a fixed 6x12 tile, and
+`FONT.get_glyph(ord(c)).tile_index` gives the slot.
+
+**Measure interleaved, never in sequence.** Measuring these one after another
+gave 8.79 ms for a Label move that is really 4.61 — dirty-region state carries
+between runs. Interleaving three passes made every number stable to 0.01 ms.
+
+**Two things not to "tidy" in `font.py`.** The `# fmt: off` around `SHAPES` is
+what stops a formatter squashing each letter onto one line. And the glyphs are
+tuples of short strings rather than triple-quoted blocks because the indentation
+inside a triple-quoted block is real bytes — 2.2 KB of RAM for the same picture.
+Dropping `SHAPES` after building the sheet does not reclaim it either; string
+literals live in the module's constant pool. Measured both ways.
+
+A cell is **4x5**: one blank column to the right of each letter, and *no* blank
+row underneath. The horizontal gap has to be in the sheet or words run together;
+a vertical one does not, because a lesson positions each line itself.
+
 **Draw order is creation order and never changes on its own.** Lighting a
 different pooled object does *not* bring it forward. `screen.bring_to_front()`
 removes and re-appends it to the group, which is the only way to reorder.
@@ -290,7 +421,32 @@ annotated for this reason, not just for autocomplete.
 
 ## Colour
 
-There is no `enum` module in CircuitPython — checked on the board, it is absent.
+There is no `enum` module in CircuitPython, and no `typing` either — both
+checked on the board, both absent.
+
+**For an enum-ish set of choices, use a plain class plus a `Literal` annotation.**
+`screen.Fonts` is the worked example. Verified on hardware 2026-08-27: a plain
+class with attributes works, *annotated* class attributes work, and a `Literal`
+annotation on a parameter works — because CircuitPython discards annotations
+instead of evaluating them, exactly as it does for `tuple[float, float, float]`.
+The `typing` import has to be guarded, which is the standard Adafruit idiom:
+
+    try:
+        from typing import Literal
+    except ImportError:
+        pass
+
+    class Fonts:
+        NORMAL: 'Literal["normal"]' = "normal"
+        SMALL: 'Literal["small"]' = "small"
+
+    def text(..., font: 'Literal["normal", "small"]' = Fonts.NORMAL):
+
+That gets autocomplete in *both* places — `screen.Fonts.` lists the names, and
+typing `font=` offers the values — while the annotations on the constants are
+what stop a type checker complaining that a `str` was passed where a `Literal`
+was wanted. Anything that only accepts a fixed set of values should also **raise
+on a bad one**; without that, a typo silently falls through to the default.
 
 - **`rainbowio.colorwheel(0..255)` is built into the firmware.** 0.1 ms to
   import, returns a packed `0xRRGGBB` int. Use it for anything that cycles.
