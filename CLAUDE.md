@@ -492,6 +492,13 @@ it drifted badly once and had to be re-audited against the files.
 parents, listing what each lesson builds. It carries no internals, and it does
 not mention `L99_breakout_done`.
 
+**Part 2, networked multiplayer, is designed but unwritten.** `network.py` and
+`font.py` are built and verified; lessons 13–19 are not. The arc, the
+architecture decisions and what to spike first are in the "Part 2: two panels"
+section at the end of `docs\lesson-plan-notes.md`. The one thing to know before
+starting: everything networking was measured with **one board and a laptop
+standing in for the second**, so board-to-board is unverified.
+
 **Lessons 01–12 are written and verified on hardware**, plus
 `L99_breakout_done`, a worked answer to the capstone. 12 ships as a working
 scaffold: the wall, the paddle, the score and a four-wall bounce all run, and

@@ -8,6 +8,10 @@ maintains the lessons, not for students.
 is now a record — where the two disagreed, the lessons won and this file was
 corrected.
 
+**Part 2 — networked multiplayer — is designed but not written.** The plumbing
+(`network.py`, `font.py`) is built and verified; lessons 13–19 are not. See
+[Part 2: two panels](#part-2-two-panels) at the end.
+
 Constraints this plan is held to, from `CLAUDE.md` and the brief:
 
 - One new idea per lesson.
@@ -459,3 +463,111 @@ Still open:
 - `screen.level()` is unbuilt. See the accelerometer section.
 - Lesson 03 runs at `time.sleep(0.5)`, which is 32 seconds to cross the screen —
   good for reading the per-step prints, slow as a first taste of motion.
+
+
+---
+
+## Part 2: two panels
+
+Designed, plumbing built and verified on hardware, **no lesson written yet**.
+The target: two boards with their tops facing each other, a ball that leaves the
+top of one panel and arrives at the top of the other with mirrored velocity, and
+a score both panels agree on. Then more than two players.
+
+This feeds two things beyond itself — the ROV self-levelling project, and
+eventually a board talking to an RP2350 over ethernet. **That second one is why
+the abstraction matters more than the transport.**
+
+### What is already built
+
+| | |
+| --- | --- |
+| `network.start()` | Joins the wifi. Returns this board's address. **Blocks 3–7 s** |
+| `network.send(address, message)` | One board |
+| `network.send_to_everyone(message)` | Broadcast |
+| `network.receive()` | Next message, or `""`. Never waits |
+| `network.my_address` | Needed because there is no `recvfrom` |
+| `screen.text(..., font=screen.Fonts.SMALL)` | 3x5 letters — 16 across, five lines |
+
+Costs, measured: round trip ~19 ms with no loss, send 7.8 ms, receive 1.7 ms,
+**~9 ms of network per frame** — 28% of a 33 ms frame. `CLAUDE.md` has the rest,
+including two landmines that are commented in `network.py` and must not be
+"tidied": `socket_open` before *every* write, and `receive()` on the raw
+`esp32spi` API rather than the socketpool.
+
+### Decisions already made, and why
+
+**Router-primary, every board an equal peer.** Not AP mode. An AP board reboots
+on every Ctrl+S and takes its partner down with it — with three pairs that is
+three single points of failure, each held by a student who is actively editing.
+
+**A heartbeat roster, not a pairing handshake.** Each board broadcasts
+`here <name> <ip>` about once a second; each keeps whoever it heard from in the
+last ~3 s. **Absence is the disconnect signal**, so a rebooting board simply
+drops off and reappears with no detection logic anywhere. Put the roster on the
+matrix and students *watch each other save* — which turns the most annoying
+property of this workflow into the clearest demo in the unit.
+
+**Broadcast to discover, unicast to play.** WiFi broadcast goes out at the
+lowest basic rate with no link-layer acknowledgement; unicast uses the
+negotiated rate and gets 802.11 retries for free. Keep the heartbeat on
+broadcast — it is how new boards appear and how a partner's reboot is noticed.
+
+**Send state every frame; never send a one-shot event.** The ball's owner
+broadcasts position, velocity and owner continuously. A handoff is just changing
+the owner field, and the acknowledgement is the other board's own next
+broadcast — so there is no ack channel and no retransmit logic. A lost packet
+costs one frame, not the ball. Score is state too, so both panels self-correct.
+This is also the answer to "do we need acks, or TCP?": no, and TCP would be
+actively worse here because every save kills its connections.
+
+**Mirroring on handoff**, tops touching so the far panel is 180° rotated:
+
+    x_new  = screen.WIDTH - ball_size - x     # not WIDTH - 1 - x
+    vx_new = -vx
+    vy_new = -vy
+
+That off-by-one is the one they will write first, and it rhymes with the
+`max_x = WIDTH - size` idiom from lesson 5.
+
+**Serve by tilt-off.** Both players tilt, both boards send their tilt value, and
+*both compute the same winner from the same two numbers* — no clocks, no race,
+and the winner's angle sets the ball's direction. The obvious "first to nudge
+wins" is a trap worth letting them try: A hears B while B misses A, and the two
+boards disagree. That is the honest content of lesson 19.
+
+### The arc
+
+| # | What they make | New idea |
+| --- | --- | --- |
+| 13 | Nudge your board, your words appear on everyone else's panel | Two boards can talk. Mirrors L01 |
+| 14 | Your tilt moves a block on *their* screen | `float()` on a received string — the reverse of L10's `str()` |
+| 15 | Several numbers in one message | `.split()`, which returns a list they know from L07 |
+| 16 | The roster: who is here, and who just rebooted | Keeping a copy of something that lives elsewhere |
+| 17 | **The ball crosses between panels** | Ownership and handoff. The hard one |
+| 18 | Both panels agree on the score | One side is the authority; the other is told |
+| 19 | The serve, and the finished game | Protocol, and what to do when two boards disagree |
+
+Roughly 4–5 hours. It is a genuine Part 2, not an extension: it widens the
+language surface with `.split()` and probably `try`/`except`, and it needs a
+second board and a router per pair.
+
+### Do this first
+
+**Everything so far was measured with one board and a laptop pretending to be
+the second.** Board-to-board is unverified, and the behaviour most likely to
+shape the design — what happens when a board reboots mid-game, which is every
+Ctrl+S — cannot be exercised at all with one board. Spike two real boards before
+writing lesson 13.
+
+Also unresolved:
+
+- `network.start()` blocks 3–7 s, so a lesson must draw something first and
+  connect behind a status pixel. There is no way around it: the reset is
+  mandatory (see `CLAUDE.md`) and the association cannot survive a reload.
+- `screen.level()` is still unbuilt, and Part 2 is where it starts to matter —
+  it is also exactly the ROV self-levelling idea, so it may deserve its own
+  lesson rather than being hidden in `screen.py`.
+- Six boards all broadcasting at frame rate is ~180 packets/sec, and each board
+  pays to parse all of them. Unicast-after-pairing is the fix, but the limit is
+  worth measuring before designing a six-player game around it.
