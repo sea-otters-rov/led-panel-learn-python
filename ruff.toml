@@ -13,9 +13,13 @@
 # per-file-ignores.line-length and set nothing at all.
 line-length = 88
 
+[lint]
+ignore = ["PLR1730"]
+
 # lessons\code.py imports a lesson for its side effect -- the import IS the
 # program. F401 "imported but unused" is wrong there, and it is worse than
 # noise: `ruff --fix`, or the extension's fix-on-save, would delete the only
 # functional line in the launcher and leave the board running nothing.
 [lint.per-file-ignores]
 "lessons/code.py" = ["F401"]
+

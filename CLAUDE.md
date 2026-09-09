@@ -116,6 +116,35 @@ working *on* the project.
   message as its own echo. Attribute every test message to its sender, or the
   second board silently answers the question you meant to ask the first.
 
+  **Why the two differ: the IP stack loops one back and not the other.**
+  Measured 2026-09-09, `lessons\spike_two_boards\measure_loopback.py`, five
+  interleaved pairs on one board:
+
+        unicast to own id    best 2.93  median 2.93  worst 3.05 ms, 5/5
+        broadcast            never arrived, 5/5, 1.0 s each
+
+  2.93 ms with a 0.12 ms spread is not a network trip. It is one
+  `socket_available()` poll (1.2 ms) plus one `socket_read`, so the datagram
+  was **already waiting before the first poll** -- lwIP saw a destination equal
+  to the interface's own address, short-circuited it, and never handed it to
+  the radio. An over-the-air hop would add ~9-15 ms on top (CLAUDE.md's
+  board-to-board round trip, halved) and would carry the jitter that whole
+  range shows; this has none.
+
+  Broadcast gets no such short-circuit. lwIP hands it straight to the radio,
+  and 802.11 does the rest: a station's frame goes *to the AP*, which relays it
+  to the other associated stations and does not reflect it back to the sender.
+  So neither layer ever gives the sender a copy.
+
+  **This is stack policy, not a law of networking** -- Linux does deliver a UDP
+  broadcast to local sockets bound to that port. Do not carry an intuition
+  built on a laptop over to this board.
+
+  The interleaving is what makes the null result trustworthy: a self-unicast
+  succeeded immediately before and after every failed broadcast, so `receive()`
+  was demonstrably alive throughout and "never arrived" cannot be a dead
+  socket.
+
 - **`microcontroller.cpu.uid` is 16 bytes, but it is not 16 bytes of serial
   number.** Across the two boards here only 6 of the 16 vary:
 

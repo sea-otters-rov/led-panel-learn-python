@@ -221,6 +221,26 @@ def text(
     return sign
 
 
+def delete_shape(
+    shape: vectorio.Circle
+    | vectorio.Rectangle
+    | vectorio.Polygon
+    | displayio.Group
+    | displayio.TileGrid,
+):
+    """Take this shape off the screen for good.
+
+    The shape stops being drawn, but your variable still points at it and
+    it still answers .x and .y -- Python only reclaims it once nothing is
+    holding it any more. So set your variable to None afterwards if you
+    made the shape inside a loop, or you will still be collecting them.
+
+    Deleting the same shape twice raises ValueError: object not in
+    sequence. Verified on hardware for every shape screen makes.
+    """
+    _group.remove(shape)
+
+
 def tilt() -> tuple[float, float, float]:
     """How far the board is tipped, as (x, y, z), each from -1.0 to 1.0.
 

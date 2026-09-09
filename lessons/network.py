@@ -6,7 +6,7 @@
     network.my_id                        # the number that means THIS board
     network.send_to_everyone("hello")    # every board hears it
     network.send(their_id, "hi")         # just that one board hears it
-    message = network.receive()          # "" when nothing has arrived
+    message = network.receive()          # None when nothing has arrived
 
 Every board has an **id**: a small number that you say out loud and type in.
 It is the only handle you need -- send() takes one, and nothing in a lesson
@@ -103,13 +103,13 @@ def address_of(board_id) -> str:
         number = int(board_id)
     except (TypeError, ValueError):
         raise ValueError(
-            "network: %r is not a board id. An id is a number like 11 -- if you "
-            "have a whole address, the id is its last number." % (board_id,)
+            f"network: {board_id} is not a board id. An id is a number like 11 -- if you "
+            "have a whole address, the id is its last number."
         )
     if not 1 <= number <= 254:
         raise ValueError(
-            "network: board id %d does not exist. Ids run 1 to 254 -- 0 and 255 "
-            "are the network and everyone, so no board is ever called those." % number
+            f"network: board id {number} does not exist. Ids run 1 to 254 -- 0 and 255 "
+            "are the network and everyone, so no board is ever called those."
         )
     return _prefix + str(number)
 
@@ -152,10 +152,16 @@ def _send_to(address: str, message: str) -> bool:
     The radio keeps what you write in a buffer and only empties it when the
     socket is opened again -- so without this, the second message arrives with
     the first one stuck to the front of it, and the third with both. That is a
-    known bug in the library, not something you did:
+    known bug in the library:
     github.com/adafruit/Adafruit_CircuitPython_ESP32SPI/issues/135
     """
     global _talk
+
+    if _esp is None:
+        raise RuntimeError("network: call start() first")
+
+    if not isinstance(message, str):
+        raise TypeError("network: message must be a string")
 
     data = (message + "\n").encode()
     if _talk is None:
@@ -165,13 +171,13 @@ def _send_to(address: str, message: str) -> bool:
         _esp.socket_open(_talk, address, PORT, conn_mode=_esp.UDP_MODE)
         _esp.socket_write(_talk, data, conn_mode=_esp.UDP_MODE)
         return True
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001, S110
         pass
 
     # The radio jammed. Throw the socket away, take a fresh one, try once more.
     try:
         _esp.socket_close(_talk)
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001, S110
         pass
     try:
         _talk = _esp.get_socket()
@@ -183,24 +189,29 @@ def _send_to(address: str, message: str) -> bool:
         return False
 
 
-def receive() -> str:
-    """The next message that arrived, or "" if nothing is waiting.
+def receive() -> str | None:
+    """The next message that arrived, or None if nothing is waiting.
 
     This never waits. Call it once per loop and carry on either way, so the
     screen keeps moving whether or not anyone is talking.
     """
     global _inbox
 
+    if _esp is None:
+        raise RuntimeError("network: call start() first")
+
     waiting = _esp.socket_available(_listen)
     if waiting:
         _inbox = _inbox + str(_esp.socket_read(_listen, waiting), "utf-8")
+    elif not _inbox:
+        return None
 
     cut = _inbox.find("\n")
     if cut < 0:
         if len(_inbox) > _INBOX_CAP:
             _inbox = ""  # something is sending junk; do not grow forever
-        return ""
+        return None
 
     message = _inbox[:cut]
     _inbox = _inbox[cut + 1 :]
-    return message
+    return message if message else None
