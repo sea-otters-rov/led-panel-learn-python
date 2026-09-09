@@ -620,6 +620,20 @@ A cell is **4x5**: one blank column to the right of each letter, and *no* blank
 row underneath. The horizontal gap has to be in the sheet or words run together;
 a vertical one does not, because a lesson positions each line itself.
 
+**`screen.delete_shape()` takes a shape out of the group; it does not free it.**
+Verified on hardware 2026-09-09 for `block`, `circle`, `burst` and `text` in
+both fonts. Two things the one-line docstring does not have room for:
+
+    delete_shape(x) twice     ValueError: object not in sequence
+    x.x = 30 after deleting   works -- the object is still alive
+
+So it is `_group.remove()` and nothing more. A lesson that makes shapes in a
+loop must also drop its own reference, or it still accumulates them — deleting
+is necessary but not sufficient, which is the other half of the Label-leak note
+above. And the double-delete `ValueError` is the same species of cryptic
+message as `tile must be 0--1`; if a lesson ever invites students to delete
+things they might already have deleted, give it a named error first.
+
 **Draw order is creation order and never changes on its own.** Lighting a
 different pooled object does *not* bring it forward. `screen.bring_to_front()`
 removes and re-appends it to the group, which is the only way to reorder.
@@ -726,11 +740,21 @@ verified** — see the networking notes above and the "Part 2: two panels"
 section at the end of `docs\lesson-plan-notes.md`, which records what the spike
 changed.
 
-**Lessons 201 and 202 are written and verified on both boards.** 202 is
+**Lessons 201, 202 and 203 are written and verified on both boards.** 202 is
 `L202_move_their_block`: type your partner's id, unicast your tilt every frame,
 their block moves on your panel — 17.7–18.4 ms/frame all in, against a 33 ms
-budget. 203–207 are not written, and the ball handoff (205) is the one piece still
-unspiked.
+budget. 203 is `L203_two_numbers`: `tilt <x> <y>` in one message, `.split()` to
+take it apart, and a tag check so a message from a board still on 201 is
+ignored instead of stopping the board. 204–207 are not written, and the ball
+handoff (205) is the one piece still unspiked.
+
+**202 crashes on purpose and must stay that way.** A board on 202 dies the
+moment anyone in the room nudges a board still on 201 — `float("5: hello!")`.
+That is the motivating problem for 203's tag, and the first move in a
+deliberate thread about trusting input: 202's "nothing bad happens when you
+assume things, right?!" is the setup, 203's closing exercises invite a student
+to send numbers their board never measured, and cheat-detection is meant to
+follow later. Do not "fix" 202 by hardening it.
 
 **Lessons 101–112 are written and verified on hardware**, plus
 `L199_breakout_done`, a worked answer to the capstone. 112 ships as a working

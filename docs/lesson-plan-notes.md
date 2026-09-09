@@ -544,7 +544,7 @@ boards disagree. That is the honest content of lesson 207.
 | --- | --- | --- |
 | 201 | Nudge your board, your words appear on everyone else's panel | Two boards can talk. Mirrors L101. **Written** |
 | 202 | Your tilt moves a block on *their* screen | `float()` on a received string — the reverse of L110's `str()`. **Written** |
-| 203 | Several numbers in one message | `.split()`, which returns a list they know from L107 |
+| 203 | Several numbers in one message, and checking one before trusting it | `.split()`, which returns a list they know from L107. **Written** |
 | 204 | The roster: who is here, and who just rebooted | Keeping a copy of something that lives elsewhere |
 | 205 | **The ball crosses between panels** | Ownership and handoff. The hard one |
 | 206 | Both panels agree on the score | One side is the authority; the other is told |
@@ -639,6 +639,45 @@ Two things it does that the arc did not call for, both earned:
 `str(tilt_x)` sends 8 significant digits — about 10 characters for a value a
 64-pixel screen can only use 6 bits of. Nothing to fix at 18 ms/frame, but it
 is the obvious thing to trim if 17's ball message ever gets tight.
+
+### Lesson 203, written and verified 2026-09-09
+
+`L203_two_numbers`. Tilt goes out as `tilt <x> <y>`, so the partner's block
+moves in both directions, and the receiver checks
+`len(word) == 3 and word[0] == MESSAGE_KIND` before believing any of it.
+
+**The tag was the point, not the second number.** 202 crashes whenever anyone
+in the room is still on 201, because `float("5: hello!")` stops the board --
+and `try`/`except` would have been the wrong fix. It patches one direction
+only, leaves the receiver silently eating data it cannot use, and teaches
+nothing about *why* the message was wrong. A tag fixes both ends and costs no
+extra new idea, because `.split()` was already this lesson's content. It also
+degrades gracefully against every earlier lesson: a bare `0.128` from an
+un-updated 202 has `word[0] == "0.128"`, matches no tag, and is ignored.
+
+Verified end to end: board A on 201 broadcasting `5: hello!` flat out, board B
+on 203. **B ran 600 frames, ignored 195 of them, accepted 0, never stopped.**
+The same traffic killed 202 on the first message. (201 in the other direction
+just shows `tilt 0.07 0.96` as text -- noise, not a crash, and unchanged.)
+
+Two things the hardware run turned up:
+
+- **Lay the board FLAT.** Stood upright, the measured `tilt_y` sat at
+  0.959-0.970 for the whole run -- gravity pins the up-and-down number to one
+  end, the block sits on the bottom edge, and the entire new half of the
+  lesson is invisible. Said in the docstring now.
+- The remaining hole is a *correctly shaped* message with a bad number:
+  `tilt banana 0.5` passes both checks and still stops the board. Left in
+  deliberately as the last try-these item -- checking the shape of a message
+  is not the same as checking what is in it.
+
+**The security thread is deliberate.** The "just assume the message only has a
+number -- nothing bad happens when you assume things, right?!" comment in 202
+is the setup, and 203's closing exercises are the payoff: a student is invited
+to send a fixed `0.9` regardless of their real tilt, or a number no real tilt
+could produce, and asked whether their partner could possibly tell. That is
+the seed for cheating and cheat-detection later, and it is why 202 is left
+crashing rather than hardened.
 
 Still unspiked: **the handoff itself** (arc item 205). That is the one remaining
 place where two boards can disagree, and it wants doing before 17 is written,

@@ -5,4 +5,4 @@ That is the only reason to edit this file -- your actual work happens in the
 lesson file itself.
 """
 
-from L202_move_their_block import main
+from L203_two_numbers import main

@@ -1,8 +1,7 @@
 # Config for the Ruff extension, which tools\setup.ps1 installs on every
 # machine. It does two jobs here: it sets the width format-on-save wraps at
-# (see the note in .vscode\settings.json), and it carries the one lint
-# exemption below. Nothing runs ruff out of .venv -- the extension brings its
-# own binary.
+# (see the note in .vscode\settings.json), and it picks the lint rules.
+# Nothing runs ruff out of .venv -- the extension brings its own binary.
 
 # Match .vscode\settings.json's editor.rulers, so the guide in the editor is
 # where the formatter actually wraps. Stated rather than relied on: 88 is
@@ -14,12 +13,33 @@
 line-length = 88
 
 [lint]
-ignore = ["PLR1730"]
+# SELECT EXPLICITLY. Ruff's default rule set is not stable between releases:
+# 0.16 turns on 413 rules where older versions turned on about 30, so a config
+# with no `select` quietly changes meaning when ruff updates. That is how this
+# file grew an `ignore` list -- UP031, I001 and PLR1730 were never chosen, they
+# arrived with an upgrade. Pin the set and the ignores are not needed.
+#
+# F is pyflakes: real mistakes -- an undefined name, an unused import, an
+# f-string with no placeholders. E4/E7/E9 are the pycodestyle errors that are
+# not matters of taste. That is the whole of what we want.
+#
+# Deliberately NOT selected: UP (pyupgrade would demand an f-string in place of
+# every "%s"), PL, FURB, RUF, B. Students have this extension installed, so
+# these rules underline THEIR lesson files -- and a lesson written plainly on
+# purpose should not be flagged for it. The `# noqa: BLE001` and `# noqa: S110`
+# comments in network.py are harmless under this set: they document intent, and
+# would matter again if anyone widened it.
+select = ["E4", "E7", "E9", "F"]
 
+[lint.per-file-ignores]
 # lessons\code.py imports a lesson for its side effect -- the import IS the
 # program. F401 "imported but unused" is wrong there, and it is worse than
 # noise: `ruff --fix`, or the extension's fix-on-save, would delete the only
 # functional line in the launcher and leave the board running nothing.
-[lint.per-file-ignores]
 "lessons/code.py" = ["F401"]
 
+# L107 imports time for a commented-out `time.sleep(0.02)` that the lesson asks
+# the student to uncomment. Ruff is right that it is unused; removing it would
+# break the exercise. Ignored here rather than with a `# noqa` in the file,
+# because a student should never have to read a lint pragma in a lesson.
+"lessons/L107_many_things/main.py" = ["F401"]

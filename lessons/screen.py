@@ -21,7 +21,9 @@ if sys.implementation.name == "circuitpython":
     TYPE_CHECKING = False
 else:
     # VSCode reads this path to power autocomplete
-    from typing import TYPE_CHECKING, Literal
+    # TYPE_CHECKING is defined but not tested anywhere yet; it is here so the
+    # two branches stay symmetrical. noqa rather than deleting it.
+    from typing import TYPE_CHECKING, Literal  # noqa: F401
 
 WIDTH = 64
 HEIGHT = 32
@@ -228,16 +230,7 @@ def delete_shape(
     | displayio.Group
     | displayio.TileGrid,
 ):
-    """Take this shape off the screen for good.
-
-    The shape stops being drawn, but your variable still points at it and
-    it still answers .x and .y -- Python only reclaims it once nothing is
-    holding it any more. So set your variable to None afterwards if you
-    made the shape inside a loop, or you will still be collecting them.
-
-    Deleting the same shape twice raises ValueError: object not in
-    sequence. Verified on hardware for every shape screen makes.
-    """
+    """Take this shape off the screen for good."""
     _group.remove(shape)
 
 
