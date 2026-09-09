@@ -540,7 +540,7 @@ boards disagree. That is the honest content of lesson 19.
 
 | # | What they make | New idea |
 | --- | --- | --- |
-| 13 | Nudge your board, your words appear on everyone else's panel | Two boards can talk. Mirrors L01 |
+| 13 | Nudge your board, your words appear on everyone else's panel | Two boards can talk. Mirrors L01. **Written** |
 | 14 | Your tilt moves a block on *their* screen | `float()` on a received string — the reverse of L10's `str()` |
 | 15 | Several numbers in one message | `.split()`, which returns a list they know from L07 |
 | 16 | The roster: who is here, and who just rebooted | Keeping a copy of something that lives elsewhere |
@@ -552,13 +552,61 @@ Roughly 4–5 hours. It is a genuine Part 2, not an extension: it widens the
 language surface with `.split()` and probably `try`/`except`, and it needs a
 second board and a router per pair.
 
-### Do this first
+### The spike: done, 2026-08-27
 
-**Everything so far was measured with one board and a laptop pretending to be
-the second.** Board-to-board is unverified, and the behaviour most likely to
-shape the design — what happens when a board reboots mid-game, which is every
-Ctrl+S — cannot be exercised at all with one board. Spike two real boards before
-writing lesson 13.
+`lessons\spike_two_boards\spike.py` runs the same file on both boards and works
+through id, join, echo, roster, ping and load. Its entry file is deliberately
+not `main.py`, so the picker does not list it. Run it with
+`tools\watch_both.py --reload`, which holds both consoles on one clock.
+
+**The design survived contact.** Every decision above held, and two of them are
+now confirmed rather than reasoned:
+
+- **A reboot needs no detection logic.** Board A was saved mid-run twice. B
+  printed LOST after 3.0 s of silence and NEW when A returned, and never
+  crashed, hung, or read a torn message. Absence really is enough.
+- **The heartbeat must be the gameplay traffic.** When the spike stopped
+  broadcasting during a measurement stage, its partner declared it dead while
+  it was plainly alive. A separate heartbeat that gameplay can interrupt is a
+  liveness signal that lies. This is a second, independent argument for "send
+  state every frame".
+
+Three things the one-board work had wrong, all now in `CLAUDE.md`:
+
+- **A board does not hear its own broadcast** — `send_to_everyone()` means
+  everyone else — though it does hear a unicast sent to its own address. So a
+  lesson that shows what this board just said has to say it locally as well as
+  send it, or a nudge with no partner in the room does nothing at all.
+- **A board's id is the last octet of its address, in hex** —
+  `network.get_board_id()`, two characters, `192.168.1.4` → `04`. Uniqueness is
+  then a property of the network rather than a probability, which matters more
+  than it sounds: the alternative, a two-character hash of the CPU UID, is 1296
+  names and collides for some pair ~1% of the time in a room of six. A name
+  collision is silent and total: a roster that skips its own name skips its
+  twin along with it, so the two boards sit ignoring each other and look like
+  dead hardware. "Unlikely" is the wrong safety margin for that.
+
+  The UID hash was built, verified, and deleted; the reasoning is in
+  `CLAUDE.md` in case someone reaches for it again. Two smaller notes: the id
+  **does not exist until the join finishes**, so a board cannot label itself
+  during its own five-second startup, and it assumes a /24, which `network.py`
+  already assumed when it builds the broadcast address.
+
+  The id is the *default*, not the point. The roster lesson (16) wants the
+  student's own name on the panel; the id is what a board calls itself before
+  anybody types one, and what lets three boards running the identical unedited
+  lesson still tell each other apart.
+- **Board-to-board round trip is about double the laptop figure** — median
+  24–30 ms against 16 — with a much worse tail. The 33 ms frame still holds
+  with both boards broadcasting flat out: 14.8–15.1 ms/frame, ~18 ms spare.
+
+And the number that shapes every networked lesson: **every Ctrl+S costs ~4.5 s
+off the network**, mostly the wifi rejoin. A lesson whose partner vanishing for
+four seconds looks like a failure is a lesson that fails constantly.
+
+Still unspiked: **the handoff itself** (arc item 17). That is the one remaining
+place where two boards can disagree, and it wants doing before 17 is written,
+not while.
 
 Also unresolved:
 

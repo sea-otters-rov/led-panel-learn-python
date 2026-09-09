@@ -16,3 +16,9 @@ tools/.circuitpy
 .commitmsg
 
 lessons/L99*
+
+# Which board is "A" and which is "B". Untracked because which boards are
+# plugged in varies -- but the UIDs in it belong to the BOARDS, so the file
+# travels with them to another machine unchanged. boards.json.example is the
+# tracked template.
+tools/boards.json

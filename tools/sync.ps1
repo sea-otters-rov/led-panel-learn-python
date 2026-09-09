@@ -32,6 +32,7 @@
 [CmdletBinding()]
 param(
     [string]$File,
+    [string]$Board,
     [switch]$Clean,
     [switch]$Quiet
 )
@@ -39,21 +40,77 @@ param(
 $ErrorActionPreference = 'Stop'
 $src = (Resolve-Path (Join-Path $PSScriptRoot '..\lessons')).Path.TrimEnd('\')
 
+function Get-BoardUid {
+    <#
+        The SAMD51's CPU UID, read from boot_out.txt, which CircuitPython writes
+        itself. Empty for anything that is not a board.
+    #>
+    param([string]$Root)
+
+    $f = Join-Path $Root 'boot_out.txt'
+    if (-not (Test-Path $f)) { return '' }
+    $text = Get-Content $f -Raw
+    if ($text -notlike 'Adafruit CircuitPython*') { return '' }
+    if ($text -match '(?m)^UID:([0-9A-Fa-f]+)\s*$') { return $Matches[1].ToUpper() }
+    return ''
+}
+
+function Resolve-BoardUid {
+    <#
+        Turn a -Board label into a UID using tools\boards.json. Only maintainers
+        with two boards attached ever pass -Board; see tools\boards.py.
+    #>
+    param([string]$Label)
+
+    $map = Join-Path $PSScriptRoot 'boards.json'
+    if (-not (Test-Path $map)) {
+        throw "No tools\boards.json. Copy tools\boards.json.example to it and put your boards' UIDs in."
+    }
+    $json = Get-Content $map -Raw | ConvertFrom-Json
+    $prop = $json.PSObject.Properties | Where-Object { $_.Name -eq $Label }
+    if (-not $prop) {
+        $names = ($json.PSObject.Properties | Where-Object { $_.Name -notlike '_*' } | ForEach-Object { $_.Name }) -join ', '
+        throw "boards.json has no board called '$Label'. It knows: $names"
+    }
+    return ([string]$prop.Value).ToUpper()
+}
+
 function Find-CircuitPy {
-    # Resolve by volume label, never a hard-coded letter -- the drive letter
-    # changes between machines and between reboots.
-    #
-    # [System.IO.DriveInfo] is a direct Win32 call, ~40ms. Do NOT use Get-Volume
-    # here: it goes through CIM/WMI and takes over three seconds, which is far
-    # too slow to sit on the save path.
+    <#
+        Resolve by volume label, never a hard-coded letter -- the drive letter
+        changes between machines and between reboots. With two boards attached
+        it changes between REPLUGS: two were seen swapping E: and G: inside one
+        session, so pass -Board and match on the UID instead of trusting order.
+
+        [System.IO.DriveInfo] is a direct Win32 call, ~40ms. Do NOT use
+        Get-Volume here: it goes through CIM/WMI and takes over three seconds,
+        which is far too slow to sit on the save path.
+    #>
+    param([string]$Uid)
+
+    $seen = @()
     foreach ($d in [System.IO.DriveInfo]::GetDrives()) {
         if (-not $d.IsReady) { continue }
         if ($d.DriveType -ne [System.IO.DriveType]::Removable) { continue }
         if ($d.VolumeLabel -ne 'CIRCUITPY') { continue }
         # boot_out.txt only exists on a real CircuitPython device. This guard is
         # what keeps -Clean from ever purging a USB stick someone relabeled.
-        if (Test-Path (Join-Path $d.RootDirectory.FullName 'boot_out.txt')) { return $d }
+        $found = Get-BoardUid $d.RootDirectory.FullName
+        if (-not $found) { continue }
+        if (-not $Uid) { $seen += $d; continue }
+        if ($found -eq $Uid) { return $d }
     }
+
+    if ($Uid) { return $null }
+
+    # No -Board given. One board is the normal case and needs no label; two is
+    # ambiguous, and picking the first silently is how you spend an afternoon
+    # debugging code that was never on the board you were watching.
+    if ($seen.Count -gt 1) {
+        $letters = ($seen | ForEach-Object { $_.Name.TrimEnd('\') }) -join ', '
+        throw "$($seen.Count) boards attached ($letters). Say which one: -Board A or -Board B (see tools\boards.json)."
+    }
+    if ($seen.Count -eq 1) { return $seen[0] }
     return $null
 }
 
@@ -115,8 +172,15 @@ function Repair-Bom {
     }
 }
 
-$drive = Find-CircuitPy
+$uid = if ($Board) { Resolve-BoardUid $Board } else { '' }
+
+$drive = Find-CircuitPy -Uid $uid
 if (-not $drive) {
+    if ($Board) {
+        Write-Host "[sync] Board '$Board' (UID $uid) is not attached." -ForegroundColor Yellow
+        Write-Host "       Run: .\.venv\Scripts\python.exe .\tools\boards.py" -ForegroundColor Yellow
+        exit 1
+    }
     Write-Host "[sync] No CIRCUITPY drive found." -ForegroundColor Yellow
     Write-Host "       Check the USB cable is a DATA cable, not charge-only." -ForegroundColor Yellow
     Write-Host "       If the board is in the bootloader, press reset once." -ForegroundColor Yellow
@@ -140,7 +204,7 @@ if ($File) {
     if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
 
     Copy-Streaming -From $full -To $target
-    if (-not $Quiet) { Write-Host "[sync] $rel -> $dst" -ForegroundColor Green }
+    if (-not $Quiet) { Write-Host "[sync] $rel -> $(if ($Board) { "board $Board, " })$dst" -ForegroundColor Green }
     exit 0
 }
 
@@ -176,9 +240,10 @@ if ($rc -ge 8) {
 
 if (-not $Quiet) {
     # Re-stat: the copy just changed how much is free.
-    $freeKB = [math]::Round((Find-CircuitPy).AvailableFreeSpace / 1KB)
+    $freeKB = [math]::Round((Find-CircuitPy -Uid $uid).AvailableFreeSpace / 1KB)
     $verb = if ($Clean) { 'synced (clean)' } else { 'synced' }
-    Write-Host "[sync] lessons\ $verb -> $dst  ($freeKB KB free)" -ForegroundColor Green
+    $who = if ($Board) { "board $Board, " } else { '' }
+    Write-Host "[sync] lessons\ $verb -> $who$dst  ($freeKB KB free)" -ForegroundColor Green
 }
 
 # Without this the script leaks robocopy's exit code, and robocopy uses 1 for

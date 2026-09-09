@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Which physical board each short label means, by CPU UID.",
+    "",
+    "Copy this file to boards.json (gitignored -- UIDs are per-machine) and put",
+    "your own boards' UIDs in. A board's UID is printed in boot_out.txt on its",
+    "own drive, and is also its USB serial number:",
+    "",
+    "    .\.venv\Scripts\python.exe .\tools\boards.py",
+    "",
+    "lists every attached board with its UID, drive and COM port, so the usual",
+    "way to fill this in is to run that with one board plugged in at a time.",
+    "",
+    "Only maintainers running two boards at once need this. A student has one",
+    "board and every tool finds it without a label."
+  ],
+
+  "A": "put-a-uid-here",
+  "B": "put-the-other-uid-here"
+}

@@ -50,6 +50,23 @@ Three traps, all of which cost real debugging time:
    costs ~100ms per save. Just attempt the copy; a failure triggers rediscovery
    and one retry, so a replugged board or a changed drive letter self-heals.
 
+   With TWO boards attached that self-healing is not enough, because the wrong
+   board is a copy that succeeds. Set LEARNPY_BOARD to a label in
+   tools\boards.json and the cached drive is checked against that board's CPU
+   UID before use. Measured cost of the check, median of 200:
+
+       cached(), student: no pin                202 us
+       cached(), maintainer: UID validated      518 us
+
+   So the pinned path adds ~0.3ms, not the ~100ms above -- reading one small
+   boot_out.txt is not the same thing as probing the volume. The student path
+   is untouched: LEARNPY_BOARD is unset, so it is one os.environ.get and no
+   extra open(). Nobody without two boards pays anything.
+
+   Unset, with two boards attached, sync.py REFUSES rather than picking the
+   first. Two boards were seen swapping E: and G: across one session, so
+   "the first one" is not stable even within a single afternoon.
+
 A UTF-8 BOM on a .py file is stripped on the way to the board, with a warning.
 CircuitPython does not skip one, and the SyntaxError it raises names line 1 and
 points at a valid docstring. PowerShell's `Set-Content -Encoding utf8` writes a
@@ -102,35 +119,117 @@ def candidate_roots(parents=None):
     return named + others
 
 
-def discover():
-    """Find the board. Only runs on the first save, or after a copy fails.
+# Returned by discover() when it found boards but cannot tell which was meant.
+# Distinct from None so the caller does not advise checking the USB cable when
+# the cable is fine and the problem is that there are two of them.
+AMBIGUOUS = "ambiguous"
+
+
+def board_uid(root):
+    """The CPU UID of the board at `root`, or None if it is not a board.
 
     boot_out.txt is written by CircuitPython itself, so its presence is proof
-    this is a real board and not a USB stick someone labelled CIRCUITPY.
+    this is a real board and not a USB stick someone labelled CIRCUITPY. The
+    UID line is what tells two attached boards apart; the drive letter does
+    not, because it changes between replugs.
     """
-    magic = b"Adafruit CircuitPython"
-    for root in candidate_roots():
-        try:
-            with open(os.path.join(root, "boot_out.txt"), "rb") as fh:
-                if fh.read(len(magic)) != magic:
-                    continue
-        except OSError:
-            continue
-        try:
-            with open(CACHE, "w") as fh:
-                fh.write(root)
-        except OSError:
-            pass
-        return root
-    return None
-
-
-def cached():
     try:
-        with open(CACHE) as fh:
-            return fh.read().strip() or None
+        with open(os.path.join(root, "boot_out.txt")) as fh:
+            text = fh.read()
     except OSError:
         return None
+    if not text.startswith("Adafruit CircuitPython"):
+        return None
+    for line in text.splitlines():
+        if line.startswith("UID:"):
+            return line[4:].strip().upper()
+    return ""  # a board, but an old firmware that does not print its UID
+
+
+def wanted_uid():
+    """The UID this machine is pinned to, from LEARNPY_BOARD. Usually None.
+
+    A student has one board and never sets this. A maintainer running two at
+    once sets LEARNPY_BOARD=A so that Ctrl+S keeps going to the same physical
+    board no matter how the drive letters land. See tools\\boards.py.
+
+    Raises LookupError for a label that is set but unknown. Falling back to
+    "whichever board" there would be the worst of both worlds: the save looks
+    fine and lands somewhere nobody chose.
+    """
+    label = os.environ.get("LEARNPY_BOARD")
+    if not label:
+        return None
+    import boards  # slow path only -- json and re are not free at startup
+
+    known = boards.labels()
+    try:
+        return known[label.strip()]
+    except KeyError:
+        raise LookupError(
+            f"LEARNPY_BOARD={label!r} is not in tools\\boards.json. "
+            f"It knows: {', '.join(sorted(known)) or '(nothing)'}")
+
+
+def discover(want=None):
+    """Find the board. Only runs on the first save, or after a copy fails.
+
+    With two boards attached, picking the first is not an answer: you get a
+    successful-looking save onto the board you were not watching. Refuse
+    instead, unless `want` names which UID is meant.
+    """
+    found = []
+    for root in candidate_roots():
+        uid = board_uid(root)
+        if uid is None:
+            continue
+        if want and uid != want:
+            continue
+        found.append((root, uid))
+        if want:
+            break
+
+    if not found:
+        return None
+    if len(found) > 1:
+        print(f"[sync] {len(found)} boards attached: "
+              f"{', '.join(r for r, _ in found)}.")
+        print("       Set LEARNPY_BOARD=A (see tools\\boards.json) so saves go "
+              "to a known one.")
+        return AMBIGUOUS
+
+    root, uid = found[0]
+    try:
+        with open(CACHE, "w") as fh:
+            # The UID rides along so the happy path can tell a shuffled drive
+            # letter from the board it was actually pinned to.
+            fh.write(root + "\n" + (uid or ""))
+    except OSError:
+        pass
+    return root
+
+
+def cached(want=None):
+    """The remembered drive, checked against `want` when one is given.
+
+    Reading boot_out.txt costs ~100ms, so it happens ONLY in the two-board
+    maintainer case. A student's save never pays for it -- see trap 3 in the
+    module docstring, which is still the rule for the ordinary path.
+    """
+    try:
+        with open(CACHE) as fh:
+            parts = fh.read().split("\n")
+    except OSError:
+        return None
+
+    root = parts[0].strip()
+    if not root:
+        return None
+
+    if want and board_uid(root) != want:
+        return None  # letters moved; discover() will find the right board
+
+    return root
 
 
 BOM = b"\xef\xbb\xbf"
@@ -169,7 +268,13 @@ def main():
         return 0
     rel = src[len(LESSONS) + 1:]
 
-    root = cached()
+    try:
+        want = wanted_uid()
+    except LookupError as exc:
+        print(f"[sync] {exc}")
+        return 1
+
+    root = cached(want)
     for attempt in (1, 2):
         if root:
             try:
@@ -180,7 +285,9 @@ def main():
                 last = exc
         if attempt == 1:
             # Board moved to a different letter, or was unplugged and replugged.
-            root = discover()
+            root = discover(want)
+            if root is AMBIGUOUS:
+                return 1  # discover() already said what to do about it
 
     if not root:
         print("[sync] No CIRCUITPY drive found.")

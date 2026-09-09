@@ -13,11 +13,20 @@ The serial port is exclusive: only one program can hold it. If the VS Code
 Serial Monitor panel or tools\console.ps1 is connected, this exits 2 and says
 so rather than failing with a bare Windows error.
 
+With two boards attached, --board says which one, by the label in
+tools\boards.json:
+
+    .\.venv\Scripts\python.exe .\tools\verify_board.py --board A
+
+Without it, one board is found automatically and two is refused rather than
+guessed -- COM numbering does not track the drive letters, and verifying the
+board you were not editing is a confusing way to lose an hour.
+
 Exit codes:
     0  board reloaded and ran, no traceback
     1  the lesson raised a traceback (printed below)
     2  serial port is busy -- disconnect the other program and re-run
-    3  no CircuitPython board found
+    3  no CircuitPython board found, or two were found and neither was named
 """
 
 import argparse
@@ -42,6 +51,10 @@ ANSI = re.compile(r"\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-9;?]*[A-Za-z]")
 MARKER = "code.py output:"
 
 
+class Ambiguous(Exception):
+    """Two boards are attached and nothing said which one was meant."""
+
+
 def find_port():
     cands = [p for p in serial.tools.list_ports.comports()
              if "VID:PID=239A" in (p.hwid or "").upper()]
@@ -49,10 +62,16 @@ def find_port():
         return None
     # MI_00 is the console interface; a second one appears only when
     # CIRCUITPY_CDC data is enabled.
-    for p in cands:
-        if "MI_00" in (p.hwid or "").upper():
-            return p.device
-    return cands[0].device
+    consoles = [p for p in cands if "MI_00" in (p.hwid or "").upper()] or cands
+
+    # Two boards is two consoles, and there is nothing in a COM number that
+    # says which is which. Refuse rather than pick, and name the way out.
+    serials = {re.search(r"SER=([0-9A-Fa-f]+)", p.hwid or "") for p in consoles}
+    if len({s.group(1).upper() for s in serials if s}) > 1:
+        ports = ", ".join(sorted(p.device for p in consoles))
+        raise Ambiguous(f"More than one board attached ({ports}).")
+
+    return consoles[0].device
 
 
 def current_lesson():
@@ -96,9 +115,31 @@ def main():
     ap.add_argument("--wait", type=float, default=2.0,
                     help="seconds between attempts (default 2)")
     ap.add_argument("--port", help="override the auto-detected COM port")
+    ap.add_argument("--board", help="which board, by label in tools\\boards.json")
     args = ap.parse_args()
 
-    port = args.port or find_port()
+    port = args.port
+    if not port and args.board:
+        import boards
+
+        try:
+            port = boards.resolve(args.board)["port"]
+        except LookupError as exc:
+            print(f"[verify] {exc}")
+            return 3
+        if not port:
+            print(f"[verify] Board {args.board!r} is mounted but has no serial "
+                  f"port. Unplug and replug it.")
+            return 3
+
+    if not port:
+        try:
+            port = find_port()
+        except Ambiguous as exc:
+            print(f"[verify] {exc}")
+            print("         Say which one: --board A  (see tools\\boards.json)")
+            return 3
+
     if not port:
         print("[verify] No Adafruit USB serial port found.")
         print("         Check the cable is a DATA cable, not charge-only.")
@@ -106,7 +147,8 @@ def main():
         return 3
 
     lesson = current_lesson()
-    print(f"[verify] {port}   code.py imports: {lesson or 'unknown'}")
+    who = f"board {args.board}, " if args.board else ""
+    print(f"[verify] {who}{port}   code.py imports: {lesson or 'unknown'}")
 
     ser = open_port(port, args.attempts, args.wait)
     if ser is None:

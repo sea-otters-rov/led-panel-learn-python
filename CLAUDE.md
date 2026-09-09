@@ -82,6 +82,91 @@ working *on* the project.
   first and connect *lazily in the background*, showing a status pixel, rather
   than blocking on the network before anything appears.
 
+- **Board-to-board is now verified.** Measured 2026-08-27 with two real boards
+  on nina-fw 3.3.0, both running the same file (`lessons\spike_two_boards`),
+  captured on one clock with `tools\watch_both.py`:
+
+        connect_AP, board to board          3.1 - 5.2 s
+        unicast round trip     best 18.7  median 24-30  worst 267-407 ms
+        unicast loss                        0-4 per 25, run to run
+        both boards broadcasting each frame 14.8-15.1 ms/frame avg, 28 worst
+        messages received                   ~1 per frame, 119-121 per 120
+
+  **The round trip is roughly double the laptop number** in the table above
+  (median 24-30 ms against 16.0), and the tail is far worse. Some of that is
+  the partner's own polling interval rather than the network — a board only
+  answers when its loop next calls `receive()` — but that is exactly what a
+  game pays, so it is the number to design against. **The 33 ms frame still
+  holds** with both boards talking flat out, with ~18 ms of headroom.
+
+- **A board does NOT hear its own broadcast. It DOES hear its own unicast.**
+  Measured on both boards, each message tagged with its sender's id:
+
+        own broadcast    0
+        own unicast      1     (sent to the board's own address)
+        partner's        1     (so a zero is not a dead network)
+
+  So `send_to_everyone()` means everyone *else*. Anything that must show what
+  this board just said has to update itself locally — lesson 13 does exactly
+  that, and without it a nudge produces nothing visible on the sender.
+
+  **An earlier version of this note claimed the opposite**, from a test that
+  counted any message starting with `echo` without checking whose it was. Both
+  boards ran that stage at the same instant, so each counted the *partner's*
+  message as its own echo. Attribute every test message to its sender, or the
+  second board silently answers the question you meant to ask the first.
+
+- **`microcontroller.cpu.uid` is 16 bytes, but it is not 16 bytes of serial
+  number.** Across the two boards here only 6 of the 16 vary:
+
+        byte     0  1  2  3   4  5  6  7   8  9 10 11  12 13 14 15
+        A       97 22 d1 0f  36 4d 47 53  20 20 20 4d  34 16 02 ff
+        B       27 e8 91 51  36 4d 47 53  20 20 20 4d  36 04 02 ff
+        differs  ^  ^  ^  ^                             ^  ^
+
+  Bytes 4-11 are ASCII (`6MGS   M`), a lot code shared by chips off the same
+  wafer run; 14-15 are fixed. **Hash all 16, never slice.** A name taken off
+  either end collides, and with the self-echo above two boards then filter each
+  other out and the network looks dead while both radios are fine. Slicing the
+  tail is what the first spike run did.
+
+- **`network.get_board_id()` is the board's name: the last octet of its address
+  in hex.** Two characters, so `192.168.1.4` is `04`. Verified on hardware —
+  boards came up `03` and `04` and the whole spike ran on those names.
+
+  **A hash of the CPU UID was built first and dropped.** It worked (board A
+  `1u`, board B `x3`, matching a host calculation byte for byte) but two
+  characters is only 1296 names, so *some* pair in a room collides ~1% of the
+  time at six boards and 28% at thirty — and a collision is silent and total,
+  because a roster that skips its own name skips its twin with it and the two
+  boards sit ignoring each other. Detecting it was possible — since a board
+  never hears its own broadcast, hearing your own name *at all* proves a twin,
+  and the heartbeat's address field says which one; verified on hardware, the
+  higher address stepped aside with no master — but the address makes the whole
+  problem vanish instead:
+  **two boards can never share an address**, and `00` and `ff` are the network
+  and broadcast addresses so neither is ever a real board.
+
+  It costs one thing: **the name does not exist until the join finishes**, so a
+  board cannot label itself during its own five-second startup. Show a
+  placeholder. This also assumes a /24, which `network.py` already assumed —
+  it builds the broadcast address by swapping the last octet for 255.
+
+- **Every Ctrl+S takes a board off the network for ~4.5 s**, measured twice:
+  0.9 s to the soft reboot, 0.4 s to running again, then 3.1-3.5 s to rejoin.
+  The partner notices by heartbeat timeout and recovers **with no detection
+  logic at all** — it printed LOST after 3.0 s of silence and NEW when the
+  board came back, and never crashed, hung, or saw a torn message. The
+  "absence is the disconnect signal" design in the lesson notes is confirmed
+  on hardware.
+
+- **A board that stops broadcasting gets declared dead even while it is alive.**
+  Seen when the spike went quiet during a measurement stage: its partner aged
+  it out after 3 s and reported LOST while it was busily running. So the
+  heartbeat cannot be a separate phase that gameplay interrupts — the
+  every-frame state broadcast has to *be* the heartbeat. Another argument for
+  "send state every frame, never a one-shot event".
+
 - **~2 MB of flash**, ~1.83 MB free with the current library set. Check headroom
   before adding libraries.
 - **The serial port is exclusive.** Only one program can hold it, so the Serial
@@ -105,6 +190,33 @@ user another approval prompt. Run them from the repo root, one per call:
     & .\tools\sync.ps1 -Clean
     git add -A
     git commit --quiet -F .commitmsg
+
+**With two boards attached, every one-board command above refuses rather than
+guessing.** Drive letters are not stable — the two boards here swapped E: and
+G: inside a single session — so "the first CIRCUITPY" silently addresses
+whichever enumerated first, and a save that lands on the board you were not
+watching costs an afternoon. Boards are named in `tools\boards.json` (per
+machine, gitignored) by CPU UID, which is in `boot_out.txt` and is also the USB
+serial number. These are the invariant strings, two per board:
+
+    .\.venv\Scripts\python.exe .\tools\boards.py
+    & .\tools\sync.ps1 -Board A
+    & .\tools\sync.ps1 -Board B
+    & .\tools\sync.ps1 -Board A -Clean
+    & .\tools\sync.ps1 -Board B -Clean
+    .\.venv\Scripts\python.exe .\tools\verify_board.py --board A
+    .\.venv\Scripts\python.exe .\tools\verify_board.py --board B
+    .\.venv\Scripts\python.exe .\tools\watch_both.py --reload
+
+`sync.py` — the Ctrl+S path — takes the label from the `LEARNPY_BOARD`
+environment variable instead of an argument, so the VS Code task string never
+changes. Unset with two boards attached, it refuses.
+
+**`watch_both.py` is the instrument that makes Part 2 debuggable.** "The serial
+port is exclusive" is about one port; two boards have two, so one process can
+hold both and print them on a shared clock. A networking bug is a disagreement
+between two boards, and one board's console only ever tells you what that board
+believed.
 
 **Never `git add <paths>`.** Every distinct file list is a different string, so
 it can never be allowlisted — it prompts every single time. Stage everything and
@@ -349,6 +461,25 @@ every frame is fine. What destroys a frame rate is **creating a Label inside the
 loop**: 30 ms a frame and ~1 KB leaked every frame, because it stays in the
 group. That is the bug to look for when a student says text made things slow.
 
+**`.color` does NOT short-circuit the way `.text` does.** Measured 2026-08-27,
+a 10-character Label, three interleaved passes of 60 frames:
+
+    no colour set, static screen                  0.09
+    Label .color = the SAME int                   8.88
+    Label .color = a NEW int                      8.87
+
+Assigning a colour dirties the label whether or not the value changed, so an
+unchanged `.color` costs the same 8.9 ms as a new one — where an unchanged
+`.text` costs 0.39. **Do not mirror the `sign.text = str(score)` advice above
+onto colour.** A fade that writes `.color` every frame pays 8.9 ms forever,
+including after it has finished fading; L13 accepts that (it has ~19 ms of
+frame to spare and the simplicity is worth more), but anything with a real
+frame budget should only write the colour on the frames it actually changes.
+
+The 0.09 ms line is also worth knowing on its own: `displayio` only
+recomposites dirty regions, so refreshing a screen where nothing moved is
+free.
+
 **One `screen.text(message, color, x, y, font=...)`, two sizes.** `screen.NORMAL`
 is terminalio's 6x12; `screen.SMALL` is a 3x5 font defined in `font.py`. Both
 return an ordinary `Label`, so `.text`, `.color`, `.x`, `.y` and variable-length
@@ -492,12 +623,12 @@ it drifted badly once and had to be re-audited against the files.
 parents, listing what each lesson builds. It carries no internals, and it does
 not mention `L99_breakout_done`.
 
-**Part 2, networked multiplayer, is designed but unwritten.** `network.py` and
-`font.py` are built and verified; lessons 13–19 are not. The arc, the
-architecture decisions and what to spike first are in the "Part 2: two panels"
-section at the end of `docs\lesson-plan-notes.md`. The one thing to know before
-starting: everything networking was measured with **one board and a laptop
-standing in for the second**, so board-to-board is unverified.
+**Part 2, networked multiplayer, is under way.** `network.py` and `font.py` are
+built and verified. The two-board spike is **done and board-to-board is now
+verified** — see the networking notes above and the "Part 2: two panels"
+section at the end of `docs\lesson-plan-notes.md`, which records what the spike
+changed. **Lesson 13 is written and runs on both boards**; 14–19 are not, and
+the ball handoff (17) is the one piece still unspiked.
 
 **Lessons 01–12 are written and verified on hardware**, plus
 `L99_breakout_done`, a worked answer to the capstone. 12 ships as a working

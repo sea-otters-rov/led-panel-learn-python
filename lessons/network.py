@@ -74,6 +74,42 @@ def start(tries: int = 8) -> str:
     return my_address
 
 
+def get_board_id() -> str:
+    """This board's two-character name, e.g. "04". Different on every board.
+
+    It is the last number of this board's address written in hex, so
+    192.168.1.4 is "04" and 192.168.1.254 is "fe". Put it on the screen and
+    at the front of what you send, and a roomful of boards running the same
+    program stops being anonymous.
+
+    Two boards can never share one, because two boards can never share an
+    address -- and "00" and "ff" are the network and broadcast addresses, so
+    neither is ever a real board. That guarantee is why this is not a hash of
+    the chip's serial number, which was the other candidate: two characters is
+    1296 names, so some pair in a room of six collides about 1% of the time,
+    and a roster that skips its own name then skips its twin as well. Two
+    boards would sit there ignoring each other, looking like dead hardware.
+
+    The address has to exist first, so this only works after start().
+    """
+    if not my_address:
+        raise RuntimeError("network: call start() before get_board_id()")
+    return "%02x" % int(my_address.split(".")[-1])
+
+
+def firmware_version() -> str:
+    """What version the radio is running. Only useful when something is wrong.
+
+    Old nina-fw associates and resolves names perfectly well and then fails
+    every single socket_open, which looks like a bug in your code and is not.
+    3.3.0 or newer is what this course expects. Check this first when a board
+    joins the wifi and then cannot send anything.
+    """
+    if _esp is None:
+        raise RuntimeError("network: call start() first")
+    return str(_esp.firmware_version, "utf-8").strip("\x00")
+
+
 def send(address: str, message: str) -> bool:
     """Send one message to one board. True if it went out.
 
