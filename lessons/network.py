@@ -3,9 +3,15 @@
     import network
 
     network.start()                      # join the wifi -- takes a few seconds
+    network.my_id                        # the number that means THIS board
     network.send_to_everyone("hello")    # every board hears it
-    network.send(their_address, "hi")    # just that one board hears it
+    network.send(their_id, "hi")         # just that one board hears it
     message = network.receive()          # "" when nothing has arrived
+
+Every board has an **id**: a small number that you say out loud and type in.
+It is the only handle you need -- send() takes one, and nothing in a lesson
+ever types a full address. Two boards can never end up with the same id, so
+"what if we clash?" is a question this course never has to answer.
 
 Messages are plain text. Whatever you send is exactly what comes out the other
 end, so it is up to your lesson to decide what the words mean.
@@ -20,11 +26,13 @@ import adafruit_esp32spi.adafruit_esp32spi as esp32spi
 
 PORT = 5007  # every board listens here
 
-my_address = ""  # filled in by start(), e.g. "192.168.1.3"
+my_id = ""  # filled in by start(), e.g. "11". What you call this board
+my_address = ""  # filled in by start(), e.g. "192.168.1.11"
 
 _esp = None
 _listen = None
 _everyone = ""
+_prefix = ""
 _inbox = ""
 _talk = None
 _INBOX_CAP = 512
@@ -37,7 +45,7 @@ def start(tries: int = 8) -> str:
     be reset and then join the network. Put something on the screen first so
     nobody thinks the board has died.
     """
-    global _esp, _listen, _everyone, my_address
+    global _esp, _listen, _everyone, _prefix, my_address, my_id
 
     import os
 
@@ -62,39 +70,50 @@ def start(tries: int = 8) -> str:
 
     my_address = _esp.pretty_ip(_esp.ip_address)
 
-    # The broadcast address is our own with the last number swapped for 255.
+    # Every board here shares the first three numbers of its address and
+    # differs only in the last, so the last number on its own is enough to
+    # name a board -- that is exactly what an id is.
     piece = my_address.split(".")
-    _everyone = piece[0] + "." + piece[1] + "." + piece[2] + ".255"
+    _prefix = piece[0] + "." + piece[1] + "." + piece[2] + "."
+    _everyone = _prefix + "255"
+    my_id = str(int(piece[3]))
 
     _listen = _esp.get_socket()
     _esp.start_server(PORT, _listen, conn_mode=_esp.UDP_MODE)
 
 
-    print("network: ready at", my_address)
-    return my_address
+    print("network: board", my_id, "ready at", my_address)
+    return my_id
 
 
-def get_board_id() -> str:
-    """This board's two-character name, e.g. "04". Different on every board.
+def address_of(board_id) -> str:
+    """The full address of the board with this id, e.g. 11 -> "192.168.1.11".
 
-    It is the last number of this board's address written in hex, so
-    192.168.1.4 is "04" and 192.168.1.254 is "fe". Put it on the screen and
-    at the front of what you send, and a roomful of boards running the same
-    program stops being anonymous.
+    You do not need this to send -- send() takes the id and does this for you.
+    It is here so a lesson can show the expansion once, because it is the whole
+    trick: every board in the room shares the first three numbers, so the last
+    one on its own is enough to say which board you mean. An id is an address
+    with the boring part left off.
 
-    Two boards can never share one, because two boards can never share an
-    address -- and "00" and "ff" are the network and broadcast addresses, so
-    neither is ever a real board. That guarantee is why this is not a hash of
-    the chip's serial number, which was the other candidate: two characters is
-    1296 names, so some pair in a room of six collides about 1% of the time,
-    and a roster that skips its own name then skips its twin as well. Two
-    boards would sit there ignoring each other, looking like dead hardware.
-
-    The address has to exist first, so this only works after start().
+    The id may be a number or something the student typed, so "7", "07" and
+    " 7" all mean the same board.
     """
-    if not my_address:
-        raise RuntimeError("network: call start() before get_board_id()")
-    return "%02x" % int(my_address.split(".")[-1])
+    if not _prefix:
+        raise RuntimeError("network: call start() before address_of()")
+    try:
+        number = int(board_id)
+    except (TypeError, ValueError):
+        raise ValueError(
+            "network: %r is not a board id. An id is a number like 11 -- if you "
+            "have a whole address, the id is its last number." % (board_id,)
+        )
+    if not 1 <= number <= 254:
+        raise ValueError(
+            "network: board id %d does not exist. Ids run 1 to 254 -- 0 and 255 "
+            "are the network and everyone, so no board is ever called those."
+            % number
+        )
+    return _prefix + str(number)
 
 
 def firmware_version() -> str:
@@ -110,8 +129,26 @@ def firmware_version() -> str:
     return str(_esp.firmware_version, "utf-8").strip("\x00")
 
 
-def send(address: str, message: str) -> bool:
-    """Send one message to one board. True if it went out.
+def send(board_id, message: str) -> bool:
+    """Send one message to one board, by its id. True if it went out.
+
+    Only that board hears it. Everybody else on the network carries on
+    unbothered, which is why a game uses this and not send_to_everyone().
+    """
+    return _send_to(address_of(board_id), message)
+
+
+def send_to_everyone(message: str) -> bool:
+    """Send one message to every board on the network.
+
+    Everyone ELSE, that is: a board does not hear its own broadcast. If your
+    own screen has to show what you just said, say it locally as well.
+    """
+    return _send_to(_everyone, message)
+
+
+def _send_to(address: str, message: str) -> bool:
+    """Put one message on the wire. Lessons use send() instead.
 
     socket_open has to be called before EVERY message, not just the first one.
     The radio keeps what you write in a buffer and only empties it when the
@@ -146,11 +183,6 @@ def send(address: str, message: str) -> bool:
     except Exception:  # noqa: BLE001
         # One lost message is not worth stopping a game for.
         return False
-
-
-def send_to_everyone(message: str) -> bool:
-    """Send one message to every board on the network."""
-    return send(_everyone, message)
 
 
 def receive() -> str:

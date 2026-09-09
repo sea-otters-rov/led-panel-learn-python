@@ -130,9 +130,21 @@ working *on* the project.
   other out and the network looks dead while both radios are fine. Slicing the
   tail is what the first spike run did.
 
-- **`network.get_board_id()` is the board's name: the last octet of its address
-  in hex.** Two characters, so `192.168.1.4` is `04`. Verified on hardware —
-  boards came up `03` and `04` and the whole spike ran on those names.
+- **A board's id is the last octet of its address, in DECIMAL** —
+  `network.my_id`, so `192.168.1.11` is `"11"`. **The id is the primary
+  handle**, not the address: `network.send(their_id, msg)` takes an id,
+  `network.start()` returns this board's id, and `network.address_of(id)` is
+  exposed only so a lesson can show the expansion once. A student never types
+  a dotted quad.
+
+  **Hex was tried first and was a mistake.** With six boards on DHCP the
+  addresses land around `.10`–`.15`, whose hex ids are `0a`–`0f` — *letters*,
+  which destroys the "an id is just a simplified address" framing the whole
+  Part 2 design leans on, and `.20` displaying as `14` is worse than useless.
+  Decimal costs the fixed two-character width, which nothing depended on.
+  `address_of()` parses with `int()`, so `"7"`, `"07"` and `" 7"` are the same
+  board when a student types one in, and it raises a named error outside
+  1–254 rather than silently building a bogus address.
 
   **A hash of the CPU UID was built first and dropped.** It worked (board A
   `1u`, board B `x3`, matching a host calculation byte for byte) but two
@@ -144,7 +156,7 @@ working *on* the project.
   and the heartbeat's address field says which one; verified on hardware, the
   higher address stepped aside with no master — but the address makes the whole
   problem vanish instead:
-  **two boards can never share an address**, and `00` and `ff` are the network
+  **two boards can never share an address**, and `0` and `255` are the network
   and broadcast addresses so neither is ever a real board.
 
   It costs one thing: **the name does not exist until the join finishes**, so a
@@ -166,6 +178,25 @@ working *on* the project.
   heartbeat cannot be a separate phase that gameplay interrupts — the
   every-frame state broadcast has to *be* the heartbeat. Another argument for
   "send state every frame, never a one-shot event".
+
+- **Board-side code cannot write the board's filesystem.** Measured on
+  hardware 2026-09-08 (`lessons\spike_two_boards\measure_write.py`):
+
+        open("/pair_test.txt", "w")   OSError [Errno 30] Read-only filesystem
+        storage.getmount("/").readonly            True
+
+  CircuitPython gives the filesystem to exactly one writer, and while USB
+  mass storage is mounted that writer is the laptop. A `boot.py` calling
+  `storage.remount("/", readonly=False)` would flip it — and would make
+  CIRCUITPY read-only *to the host*, which destroys save-as-deploy, the one
+  thing this whole course is built on. So this is a permanent no, not a
+  configuration we have not got round to.
+
+  **Consequence for Part 2: a pairing cannot survive a reboot**, and every
+  Ctrl+S is a reboot. There is nowhere to persist it. So a pairing has to
+  live in RAM and be *re-established from the partner* when a board comes
+  back — which is the roster the design already calls for, and one more
+  argument for "absence is the disconnect signal" over any stored pairing.
 
 - **~2 MB of flash**, ~1.83 MB free with the current library set. Check headroom
   before adding libraries.

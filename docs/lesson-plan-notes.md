@@ -482,11 +482,13 @@ the abstraction matters more than the transport.**
 
 | | |
 | --- | --- |
-| `network.start()` | Joins the wifi. Returns this board's address. **Blocks 3–7 s** |
-| `network.send(address, message)` | One board |
+| `network.start()` | Joins the wifi. Returns this board's id. **Blocks 3–7 s** |
+| `network.my_id` | `"11"` — the last number of this board's address |
+| `network.send(board_id, message)` | One board, addressed by id |
 | `network.send_to_everyone(message)` | Broadcast |
 | `network.receive()` | Next message, or `""`. Never waits |
-| `network.my_address` | Needed because there is no `recvfrom` |
+| `network.address_of(board_id)` | The expansion, for showing once in a lesson |
+| `network.my_address` | Rarely wanted now the id is the handle |
 | `screen.text(..., font=screen.Fonts.SMALL)` | 3x5 letters — 16 across, five lines |
 
 Costs, measured: round trip ~19 ms with no loss, send 7.8 ms, receive 1.7 ms,
@@ -577,8 +579,11 @@ Three things the one-board work had wrong, all now in `CLAUDE.md`:
   everyone else — though it does hear a unicast sent to its own address. So a
   lesson that shows what this board just said has to say it locally as well as
   send it, or a nudge with no partner in the room does nothing at all.
-- **A board's id is the last octet of its address, in hex** —
-  `network.get_board_id()`, two characters, `192.168.1.4` → `04`. Uniqueness is
+- **A board's id is the last octet of its address, in decimal** —
+  `network.my_id`, `192.168.1.11` → `"11"`, and the id is the handle every
+  lesson uses: `network.send(their_id, msg)`. (The spike shipped it in hex;
+  that was corrected on 2026-09-08, because six boards on DHCP get ids like
+  `0a`–`0f` and letters wreck the framing.) Uniqueness is
   then a property of the network rather than a probability, which matters more
   than it sounds: the alternative, a two-character hash of the CPU UID, is 1296
   names and collides for some pair ~1% of the time in a room of six. A name
@@ -608,6 +613,15 @@ Still unspiked: **the handoff itself** (arc item 17). That is the one remaining
 place where two boards can disagree, and it wants doing before 17 is written,
 not while.
 
+**A pairing cannot be remembered across a reboot.** Tested on hardware
+2026-09-08: board-side code cannot write the board's filesystem at all
+(`Errno 30`, `readonly` is `True`), and the only way to change that would make
+CIRCUITPY read-only to the laptop and kill save-as-deploy. See `CLAUDE.md`. So
+there is no "remember my partner" file, and a board that reboots must rebuild
+its pairing from what it hears — the roster again. Tap-to-pair therefore has to
+sit *after* presence exists, which is why it lands as an extension of 16 rather
+than as its own lesson before 14.
+
 Also unresolved:
 
 - `network.start()` blocks 3–7 s, so a lesson must draw something first and
@@ -616,6 +630,11 @@ Also unresolved:
 - `screen.level()` is still unbuilt, and Part 2 is where it starts to matter —
   it is also exactly the ROV self-levelling idea, so it may deserve its own
   lesson rather than being hidden in `screen.py`.
+- **The classroom setup wants doing before the first networked class**: DHCP
+  reservations pinning the six boards to `.11`–`.16`, so every id is a stable
+  two-digit number all term, and a sticker on each panel to match. Without the
+  reservations a board's id changes when the lease does, and a student's
+  written-down partner id goes stale between lessons.
 - Six boards all broadcasting at frame rate is ~180 packets/sec, and each board
   pays to parse all of them. Unicast-after-pairing is the fix, but the limit is
   worth measuring before designing a six-player game around it.

@@ -11,7 +11,8 @@ folder that holds one, so a spike named main.py would appear in the student
 picker between lesson 12 and the capstone.
 
 Both boards run this identical file. Nothing is configured per board: a board
-names itself from its own CPU UID, and finds its partner by listening. Run it
+takes its id from the address the router gives it, and finds its partner by
+listening. Run it
 with
 
     .\\.venv\\Scripts\\python.exe .\\tools\\watch_both.py --reload
@@ -58,9 +59,9 @@ def stage_join(sign):
     """
     show(sign, "wifi")
     start = time.monotonic()
-    address = network.start()
+    name = network.start()
     took = time.monotonic() - start
-    name = network.get_board_id()
+    address = network.my_address
 
     # If this says anything below 3.3.0, stop: the board will associate and
     # then fail every socket_open, which reads like a bug in the spike.
@@ -72,7 +73,7 @@ def stage_join(sign):
     return name, address
 
 
-def stage_echo(name, address, sign):
+def stage_echo(name, sign):
     """Does a board hear its OWN messages? Broadcast and unicast separately.
 
     Lesson 13 is "nudge your board and your words appear on your friend's
@@ -90,7 +91,7 @@ def stage_echo(name, address, sign):
         pass  # drain whatever the earlier stages left in the buffer
 
     network.send_to_everyone("echo %s bcast" % name)
-    network.send(address, "echo %s unicast" % name)  # to our own address
+    network.send(name, "echo %s unicast" % name)  # to our own id
 
     mine = {"bcast": 0, "unicast": 0}
     theirs = 0
@@ -112,13 +113,18 @@ def stage_echo(name, address, sign):
     return mine["bcast"] > 0
 
 
-def stage_hear(name, address, sign, seconds=12.0, seen=None):
+def stage_hear(name, sign, seconds=12.0, seen=None):
     """Broadcast a heartbeat and print everything that arrives.
 
     This is the roster from the design notes, reduced to its smallest form.
     Absence is the disconnect signal: a board that reboots stops broadcasting,
     ages out of `seen`, and reappears by itself. There is no detection logic
     anywhere, which is the whole point.
+
+    The heartbeat is "here <id>" and nothing else. It used to carry the
+    sender's address as well, because a receiver never learns who sent a
+    datagram -- but an id IS an address with the prefix left off, so the
+    address field was saying the same thing twice.
 
     Pass seconds=None to stay here forever. That is the reboot test: press
     Ctrl+S on one board and watch the other print LOST and then NEW without
@@ -137,23 +143,23 @@ def stage_hear(name, address, sign, seconds=12.0, seen=None):
     while end is None or time.monotonic() < end:
         now = time.monotonic()
         if now >= beat:
-            network.send_to_everyone("here " + name + " " + address)
+            network.send_to_everyone("here " + name)
             beat = now + HEARTBEAT
 
         message = network.receive()
         while message:
             word = message.split()
-            if len(word) == 3 and word[0] == "here" and word[1] != name:
+            if len(word) == 2 and word[0] == "here" and word[1] != name:
                 if word[1] not in known:
-                    print("hear   %s <- NEW %s at %s" % (name, word[1], word[2]))
+                    print("hear   %s <- NEW %s" % (name, word[1]))
                     known.add(word[1])
-                seen[word[1]] = (now, word[2])
+                seen[word[1]] = now
             message = network.receive()
 
         for other in list(seen):
-            if now - seen[other][0] > FORGET:
+            if now - seen[other] > FORGET:
                 print("hear   %s -- LOST %s (silent %.1f s)"
-                      % (name, other, now - seen[other][0]))
+                      % (name, other, now - seen[other]))
                 del seen[other]
                 known.discard(other)
 
@@ -164,23 +170,23 @@ def stage_hear(name, address, sign, seconds=12.0, seen=None):
         print("hear   %s heard NOBODY -- is the other board running this too?" % name)
         return None
     partner = sorted(seen)[0]
-    print("hear   %s partner is %s at %s" % (name, partner, seen[partner][1]))
-    return seen[partner][1]
+    print("hear   %s partner is %s at %s" % (name, partner, network.address_of(partner)))
+    return partner
 
 
-def stage_ping(name, address, partner, sign):
+def stage_ping(name, partner, sign):
     """Unicast round trip, board to board.
 
     Symmetric on purpose: both boards ping and both answer, so neither has to
-    be told it is the server. A reply carries the original sender's address
-    because there is no recvfrom -- a receiver never learns who sent anything.
+    be told it is the server. A reply carries the original sender's id because
+    there is no recvfrom -- a receiver never learns who sent anything.
     """
     show(sign, "png")
     trips = []
     lost = 0
 
     for seq in range(PINGS):
-        network.send(partner, "ping %s %d" % (address, seq))
+        network.send(partner, "ping %s %d" % (name, seq))
         sent = time.monotonic_ns()
         deadline = time.monotonic() + 0.5
         got = False
@@ -192,7 +198,7 @@ def stage_ping(name, address, partner, sign):
             word = message.split()
             if len(word) == 3 and word[0] == "ping":
                 # Answer the other board's ping while waiting for our own.
-                network.send(word[1], "pong %s %s" % (address, word[2]))
+                network.send(word[1], "pong %s %s" % (name, word[2]))
             elif len(word) == 3 and word[0] == "pong" and int(word[2]) == seq:
                 trips.append((time.monotonic_ns() - sent) / 1000000)
                 got = True
@@ -210,7 +216,7 @@ def stage_ping(name, address, partner, sign):
         print("ping   %s got NOTHING back from %s" % (name, partner))
 
 
-def stage_load(name, address, partner, sign):
+def stage_load(name, partner, sign):
     """Both boards broadcasting every frame, to price a frame honestly.
 
     Every network number in CLAUDE.md was taken with one board talking. Two
@@ -225,7 +231,7 @@ def stage_load(name, address, partner, sign):
     for frame in range(LOAD_FRAMES):
         start = time.monotonic_ns()
 
-        network.send(partner, "ball %d %d %s" % (frame % 64, frame % 32, address))
+        network.send(partner, "ball %d %d %s" % (frame % 64, frame % 32, name))
         while network.receive():
             heard += 1
 
@@ -246,16 +252,16 @@ sign = screen.text("...", colors.AMBER, 2, 16)
 screen.draw()
 
 name, address = stage_join(sign)
-stage_echo(name, address, sign)
-partner = stage_hear(name, address, sign)
+stage_echo(name, sign)
+partner = stage_hear(name, sign)
 
 if partner:
-    stage_ping(name, address, partner, sign)
-    stage_load(name, address, partner, sign)
+    stage_ping(name, partner, sign)
+    stage_load(name, partner, sign)
     print("done   %s" % name)
 
 # Never stop. The measured stages above are the easy half; the half that
 # cannot be faked with a laptop is what a reboot does to the other board, and
 # a reboot is what every single Ctrl+S causes. Staying in the roster is how
 # that gets watched.
-stage_hear(name, address, sign, seconds=None)
+stage_hear(name, sign, seconds=None)

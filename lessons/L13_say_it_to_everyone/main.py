@@ -5,8 +5,7 @@ the wifi. Same idea, one board further away.
 
 Three new things, and only one of them is really new:
 
-  network.start()                 join the wifi. Slow -- see below
-  network.get_board_id()          two characters that mean THIS board
+  network.start()                 join the wifi, and find out who you are
   network.send_to_everyone(...)   say something to every board in the room
   network.receive()               the next thing anybody said, or ""
 
@@ -31,16 +30,22 @@ fade_seconds = 5.0  # how long a message takes to fade away to nothing
 sign = screen.text("Connecting", colors.AMBER, 2, 16)
 screen.draw()
 
-network.start()
-
-# Who this board is. Every board on the network gets a different one, so this
-# is how a room full of identical programs stops being anonymous. It is only
-# ready AFTER start(), because the network is what hands it out.
-my_id = network.get_board_id()
+# start() hands back this board's id: a small number that means THIS board and
+# no other. Every board in the room gets a different one, which is how a class
+# running the identical program stops being anonymous.
+#
+# Notice that the id arrives FROM start(). You do not get to pick it, and it
+# does not exist until the wifi join has finished -- the network is what hands
+# it out. That is also why the panel says "Connecting" first and cannot show
+# your number yet.
+my_id = network.start()
 print(f"I am board {my_id}")
 
-# Your own id, small, in the top right corner. The small font is 3 pixels wide.
-badge = screen.text(my_id, colors.AMBER, 57, 3, font=screen.Fonts.SMALL)
+# Your own id, small, in the top right corner. Each small letter takes 4 pixels
+# across counting the gap after it, so this pushes the number up to the edge
+# whether the id is one digit or three.
+badge = screen.text(my_id, colors.AMBER, 64 - 4 * len(my_id), 3,
+                    font=screen.Fonts.SMALL)
 
 sign.text = "nudge"
 sign.color = my_color
@@ -98,8 +103,10 @@ while True:
 #     happened twice? What is the shortest fade that still reads clearly?
 #   - Move the screen.timer_reset() out of the `if heard:` block. The message
 #     from your partner arrives, but it does not brighten. Why not?
-#   - Compare your badge with the number your board printed for its address.
-#     Where does "04" come from? What would 192.168.1.20 show? (Careful.)
+#   - Look at the address your board printed next to its id. Which part of the
+#     address is your id? Now work out your neighbour's address from the number
+#     on their panel, and check it against what theirs printed. (This is all
+#     network.address_of(their_id) does -- lesson 14 uses it.)
 #   - Two people nudge at the same moment. What does your screen end up
 #     showing? Is it the same as what your neighbour's shows?
 #   - Send my_message WITHOUT the id on the front. With three boards going, can
