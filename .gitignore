@@ -16,6 +16,7 @@ tools/.circuitpy
 .commitmsg
 
 lessons/L99*
+lessons/L199*
 
 # Which board is "A" and which is "B". Untracked because which boards are
 # plugged in varies -- but the UIDs in it belong to the BOARDS, so the file

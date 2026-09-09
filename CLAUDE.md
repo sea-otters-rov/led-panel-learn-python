@@ -107,7 +107,7 @@ working *on* the project.
         partner's        1     (so a zero is not a dead network)
 
   So `send_to_everyone()` means everyone *else*. Anything that must show what
-  this board just said has to update itself locally — lesson 13 does exactly
+  this board just said has to update itself locally — lesson 201 does exactly
   that, and without it a nudge produces nothing visible on the sender.
 
   **An earlier version of this note claimed the opposite**, from a test that
@@ -291,12 +291,18 @@ restarts. Say so when adding one, instead of letting the next prompt reveal it.
   hardware: no `__init__.py` is needed, tracebacks name the lesson file and its
   real line number, and editing a lesson file is 13% *faster* per save than the
   flat layout it replaced.
-- **One folder per lesson, always with a `main.py`.** `L00_does_it_work\main.py`,
-  imported as `from L00_does_it_work import main`. A lesson that grows a bitmap,
+- **One folder per lesson, always with a `main.py`.** `L101_say_something\main.py`,
+  imported as `from L101_say_something import main`. A lesson that grows a bitmap,
   a font, or a helper module keeps them in its own folder instead of scattering
   them across the board root. Folder names must be valid Python identifiers,
   which is why they lead with a letter, and they sort into teaching order, which
-  is why they are zero-padded.
+  is why the number is fixed-width.
+- **The number is `L<part><lesson>`: `L101`–`L112` for Part 1, `L201`+ for
+  Part 2**, with the worked capstone answer as `L199`. Three digits, so plain
+  lexicographic sort is teaching order across both parts, and a lesson's part
+  is readable from its name alone. Prose in lessons and docs uses the same
+  numbers — "lesson 110", not "lesson 10" — so there is exactly one name for
+  each lesson. Renumbered from the flat `L01`–`L14` on 2026-09-08.
 - **The first docstring line of `main.py` is the lesson's catalogue entry.**
   `tools\lesson.py` scans for folders holding a `main.py` and lists that line, so
   a new lesson appears in the picker with no catalogue file to update. Keep that
@@ -306,7 +312,7 @@ restarts. Say so when adding one, instead of letting the next prompt reveal it.
 
         from . import helper                 works, no __init__.py needed
         import helper                        ImportError: no module named 'helper'
-        open("/L00_does_it_work/data.txt")   works
+        open("/L101_say_something/data.txt")   works
         open("data.txt")                     OSError: No such file/directory
 
   Use `from . import helper` for a sibling module and a leading-slash absolute
@@ -321,7 +327,7 @@ restarts. Say so when adding one, instead of letting the next prompt reveal it.
         PowerShell or bash commands      point at a VS Code task instead
         "the CIRCUITPY drive"            say "the board"
 
-  Board paths are absolute with forward slashes — `/L03_bitmaps/logo.bmp` —
+  Board paths are absolute with forward slashes — `/L103_bitmaps/logo.bmp` —
   which is what CircuitPython wants anyway. VS Code UI *is* fine: Ctrl+S, the
   Serial Monitor panel, and the task list are identical on Windows and Linux.
   (Only macOS differs, with Cmd+S, and no Mac is in scope.) Anything genuinely
@@ -503,7 +509,7 @@ Assigning a colour dirties the label whether or not the value changed, so an
 unchanged `.color` costs the same 8.9 ms as a new one — where an unchanged
 `.text` costs 0.39. **Do not mirror the `sign.text = str(score)` advice above
 onto colour.** A fade that writes `.color` every frame pays 8.9 ms forever,
-including after it has finished fading; L13 accepts that (it has ~19 ms of
+including after it has finished fading; L201 accepts that (it has ~19 ms of
 frame to spare and the simplicity is worth more), but anything with a real
 frame budget should only write the colour on the frames it actually changes.
 
@@ -576,7 +582,7 @@ though CircuitPython has no `tuple.__class_getitem__`. They still cost a little
 compile time on every reload, since source is recompiled each time — worth it in
 `screen.py`, not worth it in a lesson file.
 
-**They earn their place by catching lesson traps early.** L04 asks the student
+**They earn their place by catching lesson traps early.** L104 asks the student
 to delete an `int()`; because `block()` is annotated, Pylance red-squiggles it
 in the editor and says why, *before* the board ever runs it. Keep `screen.py`
 annotated for this reason, not just for autocomplete.
@@ -652,7 +658,7 @@ it drifted badly once and had to be re-audited against the files.
 
 `docs\lesson-plan.md` is a different document — one page for students and
 parents, listing what each lesson builds. It carries no internals, and it does
-not mention `L99_breakout_done`.
+not mention `L199_breakout_done`.
 
 **Part 2, networked multiplayer, is under way.** `network.py` and `font.py` are
 built and verified. The two-board spike is **done and board-to-board is now
@@ -660,17 +666,17 @@ verified** — see the networking notes above and the "Part 2: two panels"
 section at the end of `docs\lesson-plan-notes.md`, which records what the spike
 changed.
 
-**Lessons 13 and 14 are written and verified on both boards.** 14 is
-`L14_move_their_block`: type your partner's id, unicast your tilt every frame,
+**Lessons 201 and 202 are written and verified on both boards.** 202 is
+`L202_move_their_block`: type your partner's id, unicast your tilt every frame,
 their block moves on your panel — 17.7–18.4 ms/frame all in, against a 33 ms
-budget. 15–19 are not written, and the ball handoff (17) is the one piece still
+budget. 203–207 are not written, and the ball handoff (205) is the one piece still
 unspiked.
 
-**Lessons 01–12 are written and verified on hardware**, plus
-`L99_breakout_done`, a worked answer to the capstone. 12 ships as a working
+**Lessons 101–112 are written and verified on hardware**, plus
+`L199_breakout_done`, a worked answer to the capstone. 112 ships as a working
 scaffold: the wall, the paddle, the score and a four-wall bounce all run, and
 five `TODO`s add the collisions, the losing condition and the next level.
-`L00_does_it_work` has been deleted; L01 took over its smoke-test job.
+`L00_does_it_work` has been deleted; L101 took over its smoke-test job.
 
 The accelerometer lessons are groundwork for students eventually using an
 accelerometer to **self-level an ROV**, which is why `screen.tilt()` returns all
@@ -679,7 +685,7 @@ three axes rather than the two the matrix needs.
 **Audience, decided:** high school students, most with *some* programming
 experience — a class, a little Python or Java, some Scratch — but not to be
 relied on. Start from the basics and move quickly. The test for a lesson is that
-nobody is lost at lesson 1 and nobody is bored by lesson 3. Assume no prior
+nobody is lost at lesson 101 and nobody is bored by lesson 103. Assume no prior
 knowledge of hardware, `displayio`, or the board.
 
 Scope is the 64x32 matrix and the onboard LIS3DH accelerometer. No WiFi — the

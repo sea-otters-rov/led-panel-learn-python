@@ -1,10 +1,10 @@
 """Tilt your board and move a block on your partner's screen.
 
-Lesson 13 sent words to everybody. This sends a number to ONE board -- the one
+Lesson 201 sent words to everybody. This sends a number to ONE board -- the one
 whose id you type in below -- and it does it every single time round the loop,
 so your partner's block follows your board as you tilt it.
 
-The new idea is small: float(). Lesson 10 used str() to turn a number into
+The new idea is small: float(). Lesson 110 used str() to turn a number into
 words so it could go on the screen. A message is words too, so a number has to
 become words to be sent -- and then turn back into a number at the far end.
 That is what float() is for. It is str() run backwards.
@@ -34,7 +34,7 @@ my_color = colors.JADE
 their_color = colors.MAGENTA
 
 # Say something before joining, because joining takes about five seconds and a
-# dark panel looks like a dead board. Lesson 13 did this too.
+# dark panel looks like a dead board. Lesson 201 did this too.
 sign = screen.text("Connecting", colors.AMBER, 2, 16)
 screen.draw()
 
@@ -54,7 +54,7 @@ print(f"board {partner_id} is at {network.address_of(partner_id)}")
 
 sign.hidden = True
 
-# Your own id in the corner, the same as lesson 13 -- this is the number your
+# Your own id in the corner, the same as lesson 201 -- this is the number your
 # partner has to type into THEIR copy of this file, so it has to be readable
 # from across the room.
 badge = screen.text(my_id, colors.AMBER, 64 - 4 * len(my_id), 3,
@@ -66,7 +66,7 @@ badge = screen.text(my_id, colors.AMBER, 64 - 4 * len(my_id), 3,
 theirs = screen.block(4, 4, their_color, 30, 8)
 mine = screen.block(4, 4, colors.dim(my_color, 0.2), 30, 20)
 
-# The same centring arithmetic as lesson 4. Nothing about it changes just
+# The same centring arithmetic as lesson 104. Nothing about it changes just
 # because one of the blocks is being driven from across the room.
 screen_center_x = screen.WIDTH // 2
 block_center_x = theirs.width // 2
@@ -79,7 +79,7 @@ while True:
     tilt_x, tilt_y, tilt_z = screen.tilt()
 
     # Send how far you are tilted, as words. str() is doing the same job it did
-    # in lesson 10 -- it is just going down a wire instead of onto a screen.
+    # in lesson 110 -- it is just going down a wire instead of onto a screen.
     network.send(partner_id, str(tilt_x))
 
     # Read EVERYTHING that has arrived, not just one message, and keep the last
@@ -116,7 +116,7 @@ while True:
 #     constantly. Does their block keep up, or does it start lagging?
 #   - Send tilt_y as well and move the blocks up and down too. You will find
 #     you cannot -- not with what you know yet. One message carries one number.
-#     That is exactly what lesson 15 is about.
+#     That is exactly what lesson 203 is about.
 #   - Three people, one triangle: you send to A, A sends to B, B sends to you.
 #     Whose tilt is your bright block following?
 #   - Both of you set partner_id to the SAME board. What does that board see?

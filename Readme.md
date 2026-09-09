@@ -45,7 +45,7 @@ there, and so does the error message if your program breaks:
 ```
 Traceback (most recent call last):
   File "code.py", line 8, in <module>
-  File "L00_does_it_work/main.py", line 27, in <module>
+  File "L101_say_something/main.py", line 27, in <module>
 NameError: name 'MESSSAGE' isn't defined
 ```
 

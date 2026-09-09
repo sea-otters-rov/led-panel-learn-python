@@ -56,7 +56,7 @@
   // meant to see. Every other provider is off ON PURPOSE, not for tidiness:
   // the defaults enable python, powershell, bash, batch, npm, eslint and tsc,
   // which would surface every .py and .ps1 in the repo as a clickable task. A
-  // student clicking lessons\L00_does_it_work\main.py would run it on the
+  // student clicking lessons\L101_say_something\main.py would run it on the
   // laptop, where board and displayio do not exist, and get a traceback with
   // nothing to do with their lesson.
   //

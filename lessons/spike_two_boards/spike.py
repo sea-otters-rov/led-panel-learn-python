@@ -8,7 +8,7 @@ and answers the questions a laptop could not.
 
 The entry file is deliberately NOT called main.py. tools/lesson.py lists every
 folder that holds one, so a spike named main.py would appear in the student
-picker between lesson 12 and the capstone.
+picker between lesson 112 and the capstone.
 
 Both boards run this identical file. Nothing is configured per board: a board
 takes its id from the address the router gives it, and finds its partner by
@@ -76,7 +76,7 @@ def stage_join(sign):
 def stage_echo(name, sign):
     """Does a board hear its OWN messages? Broadcast and unicast separately.
 
-    Lesson 13 is "nudge your board and your words appear on your friend's
+    Lesson 201 is "nudge your board and your words appear on your friend's
     panel". Whether they also appear on the sender's own panel decides what
     the lesson can claim, so it has to be known before the lesson is written.
 

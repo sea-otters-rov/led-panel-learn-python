@@ -57,7 +57,7 @@ while True:
         ball_x = min_x + overshoot
         ball_speed_x = -ball_speed_x
 
-    # And the same again for up and down -- the answer to lesson 5's try-this.
+    # And the same again for up and down -- the answer to lesson 105's try-this.
     if ball_y > max_y:
         overshoot = ball_y - max_y
         ball_y = max_y - overshoot

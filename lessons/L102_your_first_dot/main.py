@@ -12,7 +12,7 @@ import screen
 first_block = screen.block(2, 2, colors.RED, 0, 0)
 
 # Or leave the spot off and set it afterwards. Same block either way -- but this
-# is the version you can keep moving, which is how everything moves in lesson 3.
+# is the version you can keep moving, which is how everything moves in lesson 103.
 second_block = screen.block(3, 3, colors.CYAN)
 # .x and .y are the block's top-left corner, not its middle.
 second_block.x = 30  # across: 0 is the far left, 63 is the far right

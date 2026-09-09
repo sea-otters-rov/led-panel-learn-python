@@ -3,13 +3,13 @@
 The shape of the course, and why it is shaped that way. Written for whoever
 maintains the lessons, not for students.
 
-**Status: lessons 01–12 are written and verified on hardware**, plus
-`L99_breakout_done`, a worked answer to the capstone. This started as a plan and
+**Status: lessons 101–112 are written and verified on hardware**, plus
+`L199_breakout_done`, a worked answer to the capstone. This started as a plan and
 is now a record — where the two disagreed, the lessons won and this file was
 corrected.
 
 **Part 2 — networked multiplayer — is designed but not written.** The plumbing
-(`network.py`, `font.py`) is built and verified; lessons 13–19 are not. See
+(`network.py`, `font.py`) is built and verified; lessons 201–207 are not. See
 [Part 2: two panels](#part-2-two-panels) at the end.
 
 Constraints this plan is held to, from `CLAUDE.md` and the brief:
@@ -22,7 +22,7 @@ Constraints this plan is held to, from `CLAUDE.md` and the brief:
 - Lessons are building blocks for games.
 
 **Decided:** the display and sensor setup lives in a board-root `screen.py`,
-hidden from lesson one. `L01_say_something` is what `code.py` loads by default,
+hidden from lesson one. `L101_say_something` is what `code.py` loads by default,
 and it inherited `L00_does_it_work`'s job of proving the board works — L00 has
 since been deleted.
 
@@ -48,7 +48,7 @@ All calls take an optional `x, y` and put the thing on screen immediately.
 | `screen.burst(size, color, frames)` | `TileGrid` | Expanding-ring animation. Step it with `set_frame()` |
 | `screen.text(message, color)` | `Label` | `.text` / `.color` / `.x` / `.y` |
 | `screen.recolor(shape, color)` | — | Blocks and circles have no `.color`; only `Label` does |
-| `screen.color_of(shape)` | int | Reads it back — which is how L08 stores brightness without a second list |
+| `screen.color_of(shape)` | int | Reads it back — which is how L108 stores brightness without a second list |
 | `screen.set_frame(shape, n)` | — | Which picture an animated shape shows |
 | `screen.frame_of(shape)` | int | Reads back, so the frame index doubles as state |
 | `screen.bring_to_front(shape)` | — | Re-appends to the group. The only way to reorder |
@@ -66,27 +66,27 @@ unpack all three with real names even when only two are used.
 
 **`FULL_TILT` is public and per-lesson.** The default 9.0 needs roughly 76° to
 reach the edge of the screen — fine for gentle lessons, useless for a game, and
-asking for a big tilt just gets the board waved about. Lesson 09 sets it to 3–4
+asking for a big tilt just gets the board waved about. Lesson 109 sets it to 3–4
 for itself. It cannot leak between lessons: `screen.py` is re-imported on every
 reload, so the default resets on every save. The deadzone is deliberately in raw
 sensor units rather than a fraction of `FULL_TILT`, or turning sensitivity up
 would silently shrink the noise floor and everything would twitch at rest.
 
 **`hold()` was not in the original plan and had to be added.** Without it a
-lesson's program *ends*, the console reclaims the display, and lesson 01 has
+lesson's program *ends*, the console reclaims the display, and lesson 101 has
 nothing on the matrix. The alternative was an unexplained `while True` in the
-first file. It stays through 01–03 and **lesson 04 deletes it** — swapping the
+first file. It stays through 01–03 and **lesson 104 deletes it** — swapping the
 `for` loop for `while True` is exactly what `hold()` was standing in for, which
 turns three lessons of small magic into a payoff.
 
-**`draw()` was added at lesson 07, and is opt-in on purpose.** `displayio`
+**`draw()` was added at lesson 107, and is opt-in on purpose.** `displayio`
 auto-refreshes in the background, so with ~100 moving objects a refresh lands
 *inside* the move loop and the frame tears — half the stars jump, half don't.
 Reported from the board 2026-08-13, and worse with no `time.sleep` because the
 loop then runs back-to-back. `draw()` sets `auto_refresh = False` **on its first
 call** and refreshes explicitly.
 
-Opt-in matters: lessons 01–06 never call it, so they keep auto-refresh and
+Opt-in matters: lessons 101–106 never call it, so they keep auto-refresh and
 cannot freeze. Only a lesson that asks for frame control gets it, and no earlier
 lesson needed retrofitting. The trap to avoid when writing later lessons: call
 `draw()` unconditionally once per frame. Putting it inside an `if` disables
@@ -103,8 +103,8 @@ Things that got decided along with the API:
   z-order, which is all the layering this course needs.
 - **`tilt()` is clipped and pre-oriented.** The axis, the sign and the resting
   jitter get fixed once, on hardware, inside `screen.py`. Previously those were
-  three unknowns that leaked into lesson 04.
-- **Clipping is what keeps lesson 04 ahead of `if`.** `x = 32 + int(tx * 29)`
+  three unknowns that leaked into lesson 104.
+- **Clipping is what keeps lesson 104 ahead of `if`.** `x = 32 + int(tx * 29)`
   lands in 3..61 for every possible input, provably, with no bounds test in the
   lesson. The TileGrid clipping off-screen instead of raising `IndexError` is
   the backstop.
@@ -134,29 +134,29 @@ Things that got decided along with the API:
 
 | # | Folder | Picker line | The one new idea | On the matrix when they're done | Min |
 | --- | --- | --- | --- | --- | --- |
-| 01 | `L01_say_something` | Put your own words on the matrix. | Variables | Their name, their colour, where they put it | 10 |
-| 02 | `L02_your_first_dot` | Light up a block and put it anywhere on the screen. | The 64×32 grid: `.x` / `.y` | A coloured block they placed | 15 |
-| 03 | `L03_make_it_move` | Send your block walking across the screen. | `for` + `range` + `time.sleep` | Block glides across and stops | 20 |
-| 04 | `L04_tilt_to_steer` | Tilt the board and make the block follow. | **The accelerometer** | Block chases gravity, forever | 25 |
-| 05 | `L05_hit_the_wall` | Stop the block at the walls and light up a warning when it gets there. | `if` / `elif` / `else` | Block pins to the edge, red light comes on | 25 |
-| 06 | `L06_bounce` | Tilt the board to push a bouncing ball around. | Speed as a variable, and tilt changes speed not position | Ball you shove around a box | 30 |
-| 07 | `L07_many_things` | Fill the screen with falling stars. | Lists | Starfield falling, all at once | 25 |
-| 08 | `L08_your_own_commands` | Nudge the board to set off fireworks. | Functions (`def`, arguments, `return`) | Rings expanding and fading, on demand | 30 |
-| 09 | `L09_catch_it` | Catch the falling dots before they reach the bottom. | Collision — two objects comparing positions | A real, playable game | 35 |
-| 10 | `L10_keep_score` | Put a live score on the screen while you play. | Text that changes while running | Game, plus two counters on the matrix | 25 |
-| 11 | `L11_brick_wall` | Build a wall of bricks, then knock it down. | Nested loops → a grid of things | Striped brick wall, bricks vanish | 25 |
-| 12 | `L12_breakout` | Build the whole game: tilt, bounce, bricks and a score. | *(assembly, five `TODO`s)* | Breakout | 60–90 |
-| 99 | `L99_breakout_done` | Breakout with all five TODOs filled in -- one way it can be finished. | *(worked answer)* | A finished game | — |
+| 101 | `L101_say_something` | Put your own words on the matrix. | Variables | Their name, their colour, where they put it | 10 |
+| 102 | `L102_your_first_dot` | Light up a block and put it anywhere on the screen. | The 64×32 grid: `.x` / `.y` | A coloured block they placed | 15 |
+| 103 | `L103_make_it_move` | Send your block walking across the screen. | `for` + `range` + `time.sleep` | Block glides across and stops | 20 |
+| 104 | `L104_tilt_to_steer` | Tilt the board and make the block follow. | **The accelerometer** | Block chases gravity, forever | 25 |
+| 105 | `L105_hit_the_wall` | Stop the block at the walls and light up a warning when it gets there. | `if` / `elif` / `else` | Block pins to the edge, red light comes on | 25 |
+| 106 | `L106_bounce` | Tilt the board to push a bouncing ball around. | Speed as a variable, and tilt changes speed not position | Ball you shove around a box | 30 |
+| 107 | `L107_many_things` | Fill the screen with falling stars. | Lists | Starfield falling, all at once | 25 |
+| 108 | `L108_your_own_commands` | Nudge the board to set off fireworks. | Functions (`def`, arguments, `return`) | Rings expanding and fading, on demand | 30 |
+| 109 | `L109_catch_it` | Catch the falling dots before they reach the bottom. | Collision — two objects comparing positions | A real, playable game | 35 |
+| 110 | `L110_keep_score` | Put a live score on the screen while you play. | Text that changes while running | Game, plus two counters on the matrix | 25 |
+| 111 | `L111_brick_wall` | Build a wall of bricks, then knock it down. | Nested loops → a grid of things | Striped brick wall, bricks vanish | 25 |
+| 112 | `L112_breakout` | Build the whole game: tilt, bounce, bricks and a score. | *(assembly, five `TODO`s)* | Breakout | 60–90 |
+| 199 | `L199_breakout_done` | Breakout with all five TODOs filled in -- one way it can be finished. | *(worked answer)* | A finished game | — |
 
-**Total: ~4h30 of lessons 01–11, plus 60–90 min for the capstone. ~5h45.**
+**Total: ~4h30 of lessons 101–111, plus 60–90 min for the capstone. ~5h45.**
 Roughly 8 class periods.
 
-**`L99_breakout_done` shows up in the student picker**, because `tools\lesson.py`
+**`L199_breakout_done` shows up in the student picker**, because `tools\lesson.py`
 lists any folder holding a `main.py`. If the answers should not be one keystroke
 away, either move it out of `lessons\` (losing the ability to run it) or rename
 its file so the scan misses it.
 
-Rough effort on lesson 12's five TODOs, for planning a session: **1** `ball_hits`
+Rough effort on lesson 112's five TODOs, for planning a session: **1** `ball_hits`
 10 min, near-transcription of 11; **2** paddle bounce 10–15 min, where the
 first attempt sticks; **3** bricks 20–30 min and the hardest, because a 3 px ball
 straddling a 1 px gap clips two bricks in one loop and a naive double flip
@@ -164,14 +164,14 @@ cancels out; **4** the bottom 20–30 min, the only one that starts by *deleting
 given code; **5** level clear 15–20 min, whose accumulator loop is a shape that
 appears nowhere earlier.
 
-**Lesson 05 was split in two, 2026-08-13**, exactly as the Pushback section
+**Lesson 105 was split in two, 2026-08-13**, exactly as the Pushback section
 predicted. `if` and direction-as-a-variable were never one idea, and writing 04
 settled it: the house style — name every number, one transformation per line —
 makes a combined lesson far too long. 05 is now `if` alone, applied to a wart
 the student already felt in 04 (the block hanging off the edge). 06 inherits the
 bounce with `if` already in hand.
 
-The old lesson 10 (loading a `.bmp`) is **cut**. It was the only lesson that
+The old lesson 110 (loading a `.bmp`) is **cut**. It was the only lesson that
 built nothing the capstone needed, and with `screen.py` in place it no longer
 even carries the "here's how displayio really works" justification. `.bmp`
 loading survives as an extension idea in the capstone's *make it yours* list.
@@ -212,7 +212,7 @@ is not tight, and `bitmap_font` may be reachable from `display_text`.
 
 **Nothing is used before it's taught.** The one place that came close:
 
-- **`while True` in lesson 04.** Lesson 03 uses `for x in range(64)`. Lesson 04
+- **`while True` in lesson 104.** Lesson 103 uses `for x in range(64)`. Lesson 104
   swaps that one line for `while True:` — presented as "same loop, no end", one
   word of new syntax, not a lesson's worth of idea.
 
@@ -220,26 +220,26 @@ Bounds-checking used to be the other one. `screen.tilt()` clipping removed it.
 
 ---
 
-## Lesson 01 also has to be the smoke test
+## Lesson 101 also has to be the smoke test
 
-`L00_does_it_work` is going away, so L01 inherits three jobs beyond teaching
+`L00_does_it_work` is going away, so L101 inherits three jobs beyond teaching
 variables: prove the LEDs light, prove a save reaches the board, and prove the
 Serial Monitor works. All three fall out of the lesson naturally — change
 `MESSAGE`, press Ctrl+S, the words on the matrix change and a `print()` line
 appears in the console. The change *is* the proof.
 
-**L01 is static — no animation.** L00 colour-cycled, which also proved the board
-wasn't frozen, but that needs a loop and loops are lesson 03. A student who
+**L101 is static — no animation.** L00 colour-cycled, which also proved the board
+wasn't frozen, but that needs a loop and loops are lesson 103. A student who
 typed a new message and sees it on the LEDs has all the proof they need. Don't
 put an unexplained `while True` in the first file.
 
-`code.py` becomes `from L01_say_something import main`.
+`code.py` becomes `from L101_say_something import main`.
 
 ---
 
 ## The accelerometer
 
-**Lesson 04, and it can't come sooner.** A sensor read with no loop around it
+**Lesson 104, and it can't come sooner.** A sensor read with no loop around it
 reads once at boot and never again — you tilt the board and nothing happens,
 which is worse than not having it at all. The floor is:
 
@@ -247,16 +247,16 @@ which is worse than not having it at all. The floor is:
 2. `.x` / `.y` you can assign to (02)
 3. A loop to read it in (03)
 
-`if` is *not* required, because `screen.tilt()` clips. Lesson 04 is the 4th file
+`if` is *not* required, because `screen.tilt()` clips. Lesson 104 is the 4th file
 and about 45 minutes in.
 
-**What lesson 04 actually teaches, now that setup is hidden:** mapping one range
+**What lesson 104 actually teaches, now that setup is hidden:** mapping one range
 of numbers onto another. `screen.tilt()` gives −1.0..1.0 and the screen wants
 0..63, so scale by the half-width, add the centre, subtract half the block, and
 `int()` off the decimals. That is a more useful hour than three lines of I2C
 boilerplate, and it is the same move again in 05, 09, 10, 11 and 12.
 
-Second appearance is lesson 08, as a nudge: `if screen.force() > nudge_force:`.
+Second appearance is lesson 108, as a nudge: `if screen.force() > nudge_force:`.
 It reuses the sensor to demo functions rather than introducing a new toy.
 
 **The three unknowns are settled.** Measured on hardware 2026-08-13 from two
@@ -265,7 +265,7 @@ screen-vertical and needs no sign flip, `z` is the screen's own up. Resting
 jitter is ±0.15 in sensor units, comfortably inside the 0.3 deadzone.
 
 **The one thing still open is levelling.** A board resting on cables sits a few
-degrees off, which at lesson 09's sensitivity puts the paddle ~9 px off centre.
+degrees off, which at lesson 109's sensitivity puts the paddle ~9 px off centre.
 The fix would be `screen.level()`, recording the resting vector as the new zero —
 which is also exactly the ROV self-levelling idea, so it would earn its place
 twice. Deferred: a printed holder may make it moot.
@@ -278,13 +278,13 @@ twice. Deferred: a printed holder may make it moot.
 Not one full-screen bitmap with `bitmap[x, y] = 1`.
 
 Off-screen `.x` clips silently on a moved object and is an `IndexError` on a
-bitmap — that alone is worth the choice, and it's what lets lesson 04 arrive
+bitmap — that alone is worth the choice, and it's what lets lesson 104 arrive
 before `if`. Moving is free, so no lesson has to explain why a moving block
 leaves a smear behind it.
 
 Blocks are `vectorio.Rectangle` since 2026-08-13 — 37% less RAM and 24% faster
-than `Bitmap` + `TileGrid`, measured at lesson 07's workload. **Circles are a
-`Bitmap` after all**, added at lesson 07 once it turned out `vectorio.Circle`
+than `Bitmap` + `TileGrid`, measured at lesson 107's workload. **Circles are a
+`Bitmap` after all**, added at lesson 107 once it turned out `vectorio.Circle`
 rasterises to a diamond below about 7 px. The earlier "don't use circles" note
 was a speed argument generalised from a 40-object benchmark; per object the cost
 is ~0.2 ms, so speed was never the real objection — shape was. `Polygon` stays
@@ -294,7 +294,7 @@ The knock-on wins:
 
 - Bricks are a list of `Rectangle`, and a hit brick is `brick.hidden = True`.
   Hiding is easier than deleting, and it's reversible — which is what makes
-  lesson 12's "put the wall back for level 2" a three-line TODO.
+  lesson 112's "put the wall back for level 2" a three-line TODO.
 - `rainbowio.colorwheel(row * 30)` stripes the wall with no palette lecture, and
   wraps rather than raising above 255, so a student can hand it any multiplier.
 
@@ -322,7 +322,7 @@ What the last few lessons exist to deliver:
 | 10 Keep score | The score Label sitting over the play field |
 | 11 Brick wall | The nested loop that builds the wall, and `hidden` to clear a brick |
 
-Lesson 12 ships as a **working scaffold with five `TODO`s**, not an empty file.
+Lesson 112 ships as a **working scaffold with five `TODO`s**, not an empty file.
 The wall, the paddle, the score and a four-wall bounce all run on first load, so
 the board does something the moment it opens. The TODOs are: the shared
 collision test, the paddle bounce, the brick knockout, what a miss costs, and
@@ -330,7 +330,7 @@ what happens when the wall is cleared. The last two are design questions with no
 single right answer. Then the *make it yours* list: speed up per brick, colour
 the ball by speed, angle off the paddle edge, three lives in a corner.
 
-`L99_breakout_done` is one worked answer, verified end to end on hardware. Two
+`L199_breakout_done` is one worked answer, verified end to end on hardware. Two
 things in it are worth reading before teaching the lesson: the brick loop knocks
 out every brick touched but flips the speed **once**, because a 3 px ball
 straddling a gap clips two bricks in a single loop and a double flip cancels
@@ -349,7 +349,7 @@ extension of 08, but too small to feel like a capstone).
 
 ## House style for lesson code
 
-Derived from the rewrites L02 and L04 got on 2026-08-13. Write lessons this way
+Derived from the rewrites L102 and L104 got on 2026-08-13. Write lessons this way
 from the start rather than waiting to be corrected.
 
 **Name every number.** No bare literal unless it is self-evident. Put it on its
@@ -384,8 +384,8 @@ make at least one of them a deliberate trap with a readable error.
 
 ## Pushback
 
-**`screen.py` makes lessons 01 and 02 very short — three or four lines each.**
-That is a feature at lesson 01 and a question at lesson 02. I'd still keep them
+**`screen.py` makes lessons 101 and 102 very short — three or four lines each.**
+That is a feature at lesson 101 and a question at lesson 102. I'd still keep them
 separate: 01 is where nobody can get lost, and 02 is where the coordinate grid
 lands, which is the single most-used idea in the course. But 02 needs real
 exercises to fill its 15 minutes — put a block in each corner, find the centre,
@@ -397,20 +397,20 @@ are ordinary `displayio` objects, and `screen.py` itself is a readable file
 sitting next to `colors.py`. Nothing about the design has to be un-learned
 later. Worth one sentence somewhere in `Readme.md`, not in a lesson.
 
-**~~Lesson 05 is doing the most work.~~ Split, 2026-08-13.** It was `if`, `else`,
+**~~Lesson 105 is doing the most work.~~ Split, 2026-08-13.** It was `if`, `else`,
 comparisons and direction-as-a-variable at once, which is one idea only if you
 squint. Now 05 is `if` alone and 06 is the bounce. Evidence that decided it: the
 house style adds ~8 lines of named intermediates to any lesson, so a combined
 one would have run past 40 lines.
 
-**Lesson 10 is the thinnest and might be half a lesson.** Kept separate anyway,
+**Lesson 110 is the thinnest and might be half a lesson.** Kept separate anyway,
 and it held up: a score on screen is the best motivation-per-minute in the
 course. If you ever need to drop to eleven lessons, this is the one to fold into
 09. Note its `str()` exercise — the only one testing its own new idea — was
 dropped when try-thats were redistributed between 09 and 10, so what remains is
 all about game behaviour rather than what a Label will accept.
 
-**Lesson 12 is not one lesson and the plan shouldn't pretend it is.** See above.
+**Lesson 112 is not one lesson and the plan shouldn't pretend it is.** See above.
 
 **Deliberately not in the course:** classes, dictionaries, `try`/`except`, list
 comprehensions, `%`, file I/O, index-based iteration (`for i in range(len(x))`),
@@ -459,9 +459,9 @@ run than to argue about, and several came out against the prediction.
 
 Still open:
 
-- `L99_breakout_done` shows in the picker; see the note under the sequence.
+- `L199_breakout_done` shows in the picker; see the note under the sequence.
 - `screen.level()` is unbuilt. See the accelerometer section.
-- Lesson 03 runs at `time.sleep(0.5)`, which is 32 seconds to cross the screen —
+- Lesson 103 runs at `time.sleep(0.5)`, which is 32 seconds to cross the screen —
   good for reading the per-step prints, slow as a first taste of motion.
 
 
@@ -530,25 +530,25 @@ actively worse here because every save kills its connections.
     vy_new = -vy
 
 That off-by-one is the one they will write first, and it rhymes with the
-`max_x = WIDTH - size` idiom from lesson 5.
+`max_x = WIDTH - size` idiom from lesson 105.
 
 **Serve by tilt-off.** Both players tilt, both boards send their tilt value, and
 *both compute the same winner from the same two numbers* — no clocks, no race,
 and the winner's angle sets the ball's direction. The obvious "first to nudge
 wins" is a trap worth letting them try: A hears B while B misses A, and the two
-boards disagree. That is the honest content of lesson 19.
+boards disagree. That is the honest content of lesson 207.
 
 ### The arc
 
 | # | What they make | New idea |
 | --- | --- | --- |
-| 13 | Nudge your board, your words appear on everyone else's panel | Two boards can talk. Mirrors L01. **Written** |
-| 14 | Your tilt moves a block on *their* screen | `float()` on a received string — the reverse of L10's `str()`. **Written** |
-| 15 | Several numbers in one message | `.split()`, which returns a list they know from L07 |
-| 16 | The roster: who is here, and who just rebooted | Keeping a copy of something that lives elsewhere |
-| 17 | **The ball crosses between panels** | Ownership and handoff. The hard one |
-| 18 | Both panels agree on the score | One side is the authority; the other is told |
-| 19 | The serve, and the finished game | Protocol, and what to do when two boards disagree |
+| 201 | Nudge your board, your words appear on everyone else's panel | Two boards can talk. Mirrors L101. **Written** |
+| 202 | Your tilt moves a block on *their* screen | `float()` on a received string — the reverse of L110's `str()`. **Written** |
+| 203 | Several numbers in one message | `.split()`, which returns a list they know from L107 |
+| 204 | The roster: who is here, and who just rebooted | Keeping a copy of something that lives elsewhere |
+| 205 | **The ball crosses between panels** | Ownership and handoff. The hard one |
+| 206 | Both panels agree on the score | One side is the authority; the other is told |
+| 207 | The serve, and the finished game | Protocol, and what to do when two boards disagree |
 
 Roughly 4–5 hours. It is a genuine Part 2, not an extension: it widens the
 language surface with `.split()` and probably `try`/`except`, and it needs a
@@ -597,7 +597,7 @@ Three things the one-board work had wrong, all now in `CLAUDE.md`:
   during its own five-second startup, and it assumes a /24, which `network.py`
   already assumed when it builds the broadcast address.
 
-  The id is the *default*, not the point. The roster lesson (16) wants the
+  The id is the *default*, not the point. The roster lesson (204) wants the
   student's own name on the panel; the id is what a board calls itself before
   anybody types one, and what lets three boards running the identical unedited
   lesson still tell each other apart.
@@ -609,9 +609,9 @@ And the number that shapes every networked lesson: **every Ctrl+S costs ~4.5 s
 off the network**, mostly the wifi rejoin. A lesson whose partner vanishing for
 four seconds looks like a failure is a lesson that fails constantly.
 
-### Lesson 14, written and verified 2026-09-08
+### Lesson 202, written and verified 2026-09-08
 
-`L14_move_their_block`. You type your partner's id, unicast your tilt to them
+`L202_move_their_block`. You type your partner's id, unicast your tilt to them
 every frame, and their tilt moves the bright block on your panel; your own
 block is drawn dim from your own tilt, so a board with no partner still does
 something. Verified on two boards: `str(0.12178392)` went out and came back as
@@ -640,7 +640,7 @@ Two things it does that the arc did not call for, both earned:
 64-pixel screen can only use 6 bits of. Nothing to fix at 18 ms/frame, but it
 is the obvious thing to trim if 17's ball message ever gets tight.
 
-Still unspiked: **the handoff itself** (arc item 17). That is the one remaining
+Still unspiked: **the handoff itself** (arc item 205). That is the one remaining
 place where two boards can disagree, and it wants doing before 17 is written,
 not while.
 

@@ -10,18 +10,18 @@ Run button: **saving is running**.
 
 | # | What you make | What you learn |
 | --- | --- | --- |
-| 1 | Your own words on the screen, in a color you pick | Variables -- names that hold something you can change |
-| 2 | A colored block, anywhere you want it | Coordinates -- the screen is a grid, 64 across and 32 down |
-| 3 | A block that walks across the screen | Loops -- doing something over and over |
-| 4 | A block that follows the board as you tilt it | Reading a sensor, and turning its numbers into positions |
-| 5 | A block that stops dead at the walls, with a warning light | `if` and `else` -- letting the program decide |
-| 6 | A ball you shove around a box by tilting it | Speed as a number you can change, and what a bounce really is |
-| 7 | A hundred stars falling down the screen | Lists -- one name holding many things at once |
-| 8 | Fireworks that burst and fade when you nudge the board | Functions -- writing your own commands |
-| 9 | A game: catch the falling dots on a paddle | Collisions -- working out when two things are touching |
-| 10 | The same game, with the score up on the screen | Changing what the screen says while the game runs |
-| 11 | A wall of bricks you can knock down | Loops inside loops, to build a whole grid |
-| 12 | **Breakout** -- paddle, ball, bricks, score and lives | Putting all of it together |
+| 101 | Your own words on the screen, in a color you pick | Variables -- names that hold something you can change |
+| 102 | A colored block, anywhere you want it | Coordinates -- the screen is a grid, 64 across and 32 down |
+| 103 | A block that walks across the screen | Loops -- doing something over and over |
+| 104 | A block that follows the board as you tilt it | Reading a sensor, and turning its numbers into positions |
+| 105 | A block that stops dead at the walls, with a warning light | `if` and `else` -- letting the program decide |
+| 106 | A ball you shove around a box by tilting it | Speed as a number you can change, and what a bounce really is |
+| 107 | A hundred stars falling down the screen | Lists -- one name holding many things at once |
+| 108 | Fireworks that burst and fade when you nudge the board | Functions -- writing your own commands |
+| 109 | A game: catch the falling dots on a paddle | Collisions -- working out when two things are touching |
+| 110 | The same game, with the score up on the screen | Changing what the screen says while the game runs |
+| 111 | A wall of bricks you can knock down | Loops inside loops, to build a whole grid |
+| 112 | **Breakout** -- paddle, ball, bricks, score and lives | Putting all of it together |
 
 Every lesson ends with a short list of *Try these* -- small changes to make and
 questions to answer. They are the best part, and there are no marks for them.

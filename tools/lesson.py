@@ -2,7 +2,7 @@ r"""List the lessons and switch which one the board runs.
 
     .\.venv\Scripts\python.exe .\tools\lesson.py            pick from a list
     .\.venv\Scripts\python.exe .\tools\lesson.py list       just show them
-    .\.venv\Scripts\python.exe .\tools\lesson.py L01_colors switch directly
+    .\.venv\Scripts\python.exe .\tools\lesson.py L101_say_something switch directly
 
 Switching rewrites the single import line in lessons\code.py and pushes it to
 the board, so the change takes effect the same way a save does.
@@ -56,6 +56,23 @@ def lessons():
             if os.path.isfile(os.path.join(LESSONS, n, "main.py"))]
 
 
+def number(folder):
+    """The lesson number in a folder name: L101_say_something -> 101.
+
+    The number a student types has to be the number in the folder name, not
+    the row's position in the list. The two coincided while lessons were
+    L01-L14, and stopped coinciding the moment Part 2 became L201 -- at which
+    point typing "13" would have selected lesson 201 without saying so.
+    """
+    m = re.match(r"L(\d+)_", folder)
+    return int(m.group(1)) if m else None
+
+
+def by_number(names):
+    """{lesson number: folder}, skipping anything not numbered."""
+    return {number(n): n for n in names if number(n) is not None}
+
+
 def current():
     try:
         with open(CODE_PY, encoding="utf-8-sig") as fh:
@@ -67,9 +84,17 @@ def current():
 
 def show(names, now):
     width = max(len(n) for n in names)
-    for i, name in enumerate(names, 1):
+    last_part = None
+    for name in names:
+        n = number(name)
+        # A blank line between the parts, taken straight off the number.
+        part = n // 100 if n else None
+        if last_part is not None and part != last_part:
+            print()
+        last_part = part
         mark = "*" if name == now else " "
-        print(f" {mark} {i:2}. {name.ljust(width)}  {synopsis(name)}")
+        label = "%d." % n if n else ""
+        print(f" {mark} {label:>5} {name.ljust(width)}  {synopsis(name)}")
     print("\n   * = running now")
 
 
@@ -115,9 +140,10 @@ def main():
     if arg:
         if arg in names:
             return switch(arg)
-        # Allow the number from the list as well as the folder name.
-        if arg.isdigit() and 1 <= int(arg) <= len(names):
-            return switch(names[int(arg) - 1])
+        # Allow the lesson number as well as the folder name.
+        numbered = by_number(names)
+        if arg.isdigit() and int(arg) in numbered:
+            return switch(numbered[int(arg)])
         print(f"[lesson] No lesson called {arg!r}. Available:")
         show(names, now)
         return 1
@@ -132,10 +158,11 @@ def main():
     if not choice:
         print("[lesson] cancelled")
         return 0
-    if not choice.isdigit() or not 1 <= int(choice) <= len(names):
+    numbered = by_number(names)
+    if not choice.isdigit() or int(choice) not in numbered:
         print(f"[lesson] {choice!r} is not one of the numbers above.")
         return 1
-    return switch(names[int(choice) - 1])
+    return switch(numbered[int(choice)])
 
 
 if __name__ == "__main__":

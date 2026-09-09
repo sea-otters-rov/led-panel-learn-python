@@ -1,6 +1,6 @@
 """Nudge your board and your words land on everybody else's screen.
 
-Lesson 01 put your words on YOUR screen. This puts them on your friend's, over
+Lesson 101 put your words on YOUR screen. This puts them on your friend's, over
 the wifi. Same idea, one board further away.
 
 Three new things, and only one of them is really new:
@@ -106,7 +106,7 @@ while True:
 #   - Look at the address your board printed next to its id. Which part of the
 #     address is your id? Now work out your neighbour's address from the number
 #     on their panel, and check it against what theirs printed. (This is all
-#     network.address_of(their_id) does -- lesson 14 uses it.)
+#     network.address_of(their_id) does -- lesson 202 uses it.)
 #   - Two people nudge at the same moment. What does your screen end up
 #     showing? Is it the same as what your neighbour's shows?
 #   - Send my_message WITHOUT the id on the front. With three boards going, can

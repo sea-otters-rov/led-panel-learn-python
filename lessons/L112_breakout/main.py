@@ -1,7 +1,7 @@
 """Build the whole game: tilt, bounce, bricks and a score.
 
-Nothing in here is new. The wall is lesson 11, the paddle is lessons 4 and 5,
-the bouncing is lesson 6, the score is lesson 10. Five pieces are missing --
+Nothing in here is new. The wall is lesson 111, the paddle is lessons 104 and 105,
+the bouncing is lesson 106, the score is lesson 110. Five pieces are missing --
 search for TODO and fill them in, in order.
 
 Right now the ball just rattles around the box. By the end it should be a game.
@@ -38,7 +38,7 @@ min_y = 0
 max_x = screen.WIDTH - ball_size
 max_y = screen.HEIGHT - ball_size
 
-# The wall, straight out of lesson 11.
+# The wall, straight out of lesson 111.
 bricks: list[Rectangle] = []
 for row in range(brick_rows):
     for column in range(brick_columns):
@@ -65,7 +65,7 @@ print(f"{len(bricks)} bricks up. Fill in the TODOs to turn this into a game.")
 def ball_hits(thing):
     """True when the ball is overlapping this block.
 
-    TODO 1: this is lesson 11's touching(), with one change. Use thing.width and
+    TODO 1: this is lesson 111's touching(), with one change. Use thing.width and
     thing.height instead of the brick sizes, and it will work for the paddle as
     well as for a brick. Everything below needs this, so do it first.
     """
@@ -73,7 +73,7 @@ def ball_hits(thing):
 
 
 while True:
-    # The paddle, from lessons 4 and 5.
+    # The paddle, from lessons 104 and 105.
     tilt_x, tilt_y, tilt_z = screen.tilt()
     paddle.x = int(tilt_x * screen_center_x) + screen_center_x - paddle_center_x
     if paddle.x > paddle_max_x:
@@ -81,11 +81,11 @@ while True:
     elif paddle.x < 0:
         paddle.x = 0
 
-    # Move the ball, from lesson 6.
+    # Move the ball, from lesson 106.
     ball_x = ball_x + ball_speed_x
     ball_y = ball_y + ball_speed_y
 
-    # Bounce off all four walls, also lesson 6. Reflecting the overshoot rather
+    # Bounce off all four walls, also lesson 106. Reflecting the overshoot rather
     # than just stopping at the wall is what keeps the ball lively.
     if ball_x > max_x:
         ball_x = max_x - (ball_x - max_x)
@@ -110,8 +110,8 @@ while True:
     #   inside the paddle and flip again next loop. What else does it need?
 
     # TODO 3: knock out any brick the ball touches.
-    #   Loop over bricks like lesson 11, hide the one it hits, add 1 to score,
-    #   and put the new score on score_sign like lesson 10. The ball should
+    #   Loop over bricks like lesson 111, hide the one it hits, add 1 to score,
+    #   and put the new score on score_sign like lesson 110. The ball should
     #   turn around too.
 
     # TODO 4: right now the bottom wall saves you every time. Take that bounce

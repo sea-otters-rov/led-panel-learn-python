@@ -161,4 +161,4 @@ Write-Host "`nDone." -ForegroundColor Green
 Write-Host "  Open this folder in VS Code, then:" -ForegroundColor Green
 Write-Host "    - Ctrl+Shift+P -> 'Python: Select Interpreter' -> .venv" -ForegroundColor Green
 Write-Host "    - Ctrl+Shift+P -> 'Serial Monitor: Focus on Monitor View' -> pick the COM port -> Start Monitoring" -ForegroundColor Green
-Write-Host "    - edit lessons\L00_does_it_work\main.py and hit Ctrl+S" -ForegroundColor Green
+Write-Host "    - edit lessons\L101_say_something\main.py and hit Ctrl+S" -ForegroundColor Green
