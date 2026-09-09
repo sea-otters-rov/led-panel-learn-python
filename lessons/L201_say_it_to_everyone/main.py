@@ -47,7 +47,7 @@ print(f"I am board {my_id}")
 badge = screen.text(my_id, colors.AMBER, 64 - 4 * len(my_id), 3,
                     font=screen.Fonts.SMALL)
 
-sign.text = "nudge"
+sign.text =   "nudge"
 sign.color = my_color
 
 # Start the fade clock HERE, not earlier. It starts running the moment screen

@@ -92,10 +92,34 @@
     "workspace": true
   },
 
+  // ---------------------------------------------------------------------------
+  // Formatting.
+  //
+  // Ruff, because tools\setup.ps1 already installs the extension on every
+  // machine and ruff.toml is already the lint config -- so this adds no new
+  // tool for a student to install and nothing new to keep in step. The
+  // extension carries its own ruff binary; .venv does not need one.
+  //
+  // FORMAT only. Do NOT add "editor.codeActionsOnSave" with fixAll or
+  // organizeImports: lessons\code.py imports a lesson for its side effect, and
+  // a fix pass would delete the only functional line in the launcher and leave
+  // the board running nothing. ruff.toml exempts that file from F401, but the
+  // formatter is the safe half of ruff and the fixer is not -- keep it that way.
+  //
+  // This works because files.autoSave is onFocusChange. VS Code silently skips
+  // formatOnSave when autoSave is "afterDelay", so if that ever changes, the
+  // formatter stops running and nothing says so.
+  //
+  // lessons\font.py guards its glyph pictures with "# fmt: off". Verified:
+  // without it the formatter squashes SHAPES from 300 lines to 48, one letter
+  // per line, and the pictures stop being pictures.
+  // ---------------------------------------------------------------------------
   "[python]": {
     "editor.tabSize": 4,
     "editor.insertSpaces": true,
-    "editor.rulers": [88]
+    "editor.rulers": [88],
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true
   },
 
   "files.exclude": {

@@ -333,13 +333,32 @@ restarts. Say so when adding one, instead of letting the next prompt reveal it.
   (Only macOS differs, with Cmd+S, and no Mac is in scope.) Anything genuinely
   per-OS goes in `Readme.md`, which can grow a Linux section without touching a
   single lesson.
-- **`ruff.toml` exists for one rule.** The launcher's import looks unused to
-  F401, and `ruff --fix` would delete it and leave the board running nothing.
-  Ruff is not in `setup.ps1`, so only maintainers ever see this; students have
-  no linter.
+- **Ruff formats on save, and must never fix on save.** `setup.ps1` installs
+  the Ruff extension on *every* machine, students included, so `ruff.toml` is
+  not a maintainer-only file -- an earlier note here claimed it was, and that
+  was simply wrong. The formatter is the safe half of ruff; the fixer is not.
+  The launcher's import looks unused to F401, and `ruff --fix` or
+  `codeActionsOnSave` would delete the only functional line in `code.py` and
+  leave the board running nothing. `ruff.toml` exempts that file, but do not
+  add a fix pass on top of it.
+
+  Format-on-save is set in `.vscode\settings.json` under `[python]`, and
+  **works only because `files.autoSave` is `onFocusChange`** -- VS Code
+  silently skips `formatOnSave` when autoSave is `afterDelay`, so the two
+  settings are coupled and neither can move alone.
+
+  Verified 2026-09-08: all twelve Part 1 lessons were **already** conformant,
+  so the house style and ruff's defaults agree and a student editing a lesson
+  sees nothing jump. Line length is 88 in `ruff.toml`, matching
+  `editor.rulers`; 88 characters passes and 89 wraps. And `font.py`'s
+  `# fmt: off` is load-bearing -- without it the formatter squashes `SHAPES`
+  from 300 lines to 48 and the glyph pictures stop being pictures.
 - **Save = deploy.** Writing to CIRCUITPY is what triggers auto-reload, so
-  copying a file *is* running it. Autosave is off deliberately; with it on,
-  every pause in typing would push a half-written file and restart the board.
+  copying a file *is* running it. Autosave is `onFocusChange`, deliberately and
+  specifically: `afterDelay` would fire on every pause in typing and push
+  half-written files to the board mid-edit, while `off` loses work when you
+  alt-tab away. (This bullet used to say autosave was off; the setting has been
+  `onFocusChange` for as long as `.vscode\settings.json` has explained why.)
 - **Stub version tracks firmware.** `circuitpython-stubs` is pinned to 10.2.1 to
   match `firmware\*.uf2`. Bump them together, or autocomplete quietly lies.
 - **`lessons\lib` is committed.** circup installs into the repo (`--path
