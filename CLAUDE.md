@@ -347,6 +347,18 @@ restarts. Say so when adding one, instead of letting the next prompt reveal it.
   silently skips `formatOnSave` when autoSave is `afterDelay`, so the two
   settings are coupled and neither can move alone.
 
+  Cost on the save path: **~54 ms** for a cold `ruff format --check` of one
+  lesson, measured five times on this machine. That is the pessimistic number
+  -- it is a whole process spawn plus config discovery, where the extension
+  keeps a server alive and pays far less. Against the ~430 ms host-side save
+  budget it is affordable either way, but it is the first thing to re-measure
+  if saves start feeling slow on a student laptop.
+
+  Nothing installs ruff into `.venv`, deliberately: the extension carries its
+  own binary, so `.venv` stays exactly what `setup.ps1` builds. A maintainer
+  who wants the CLI can `pip install ruff` ad hoc -- just do not let a tool or
+  task come to depend on `.venv\Scriptsuff.exe`, which students will not have.
+
   Verified 2026-09-08: all twelve Part 1 lessons were **already** conformant,
   so the house style and ruff's defaults agree and a student editing a lesson
   sees nothing jump. Line length is 88 in `ruff.toml`, matching

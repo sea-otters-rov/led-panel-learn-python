@@ -44,10 +44,11 @@ print(f"I am board {my_id}")
 # Your own id, small, in the top right corner. Each small letter takes 4 pixels
 # across counting the gap after it, so this pushes the number up to the edge
 # whether the id is one digit or three.
-badge = screen.text(my_id, colors.AMBER, 64 - 4 * len(my_id), 3,
-                    font=screen.Fonts.SMALL)
+badge = screen.text(
+    my_id, colors.AMBER, 64 - 4 * len(my_id), 3, font=screen.Fonts.SMALL
+)
 
-sign.text =   "nudge"
+sign.text = "nudge"
 sign.color = my_color
 
 # Start the fade clock HERE, not earlier. It starts running the moment screen

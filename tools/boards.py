@@ -39,8 +39,11 @@ def labels() -> dict:
             raw = json.load(fh)
     except (OSError, ValueError):
         return {}
-    return {k: v.upper() for k, v in raw.items()
-            if not k.startswith("_") and isinstance(v, str)}
+    return {
+        k: v.upper()
+        for k, v in raw.items()
+        if not k.startswith("_") and isinstance(v, str)
+    }
 
 
 def uid_of(root: str) -> str:
@@ -104,11 +107,13 @@ def resolve(label: str) -> dict:
     if not known:
         raise LookupError(
             f"No {os.path.basename(MAP)}. Copy tools\boards.json.example to "
-            f"tools\boards.json and put your boards' UIDs in it.")
+            f"tools\boards.json and put your boards' UIDs in it."
+        )
     if label not in known:
         raise LookupError(
             f"boards.json has no board called {label!r}. "
-            f"It knows: {', '.join(sorted(known)) or '(nothing)'}")
+            f"It knows: {', '.join(sorted(known)) or '(nothing)'}"
+        )
 
     want = known[label]
     for board in attached():
@@ -116,7 +121,8 @@ def resolve(label: str) -> dict:
             return board
     raise LookupError(
         f"Board {label!r} (UID {want}) is not attached. "
-        f"Attached now: {', '.join(b['uid'] for b in attached()) or '(none)'}")
+        f"Attached now: {', '.join(b['uid'] for b in attached()) or '(none)'}"
+    )
 
 
 def main() -> int:
@@ -138,8 +144,9 @@ def main() -> int:
     unknown = [b for b in boards if b["uid"] not in by_uid]
     if unknown and len(boards) > 1:
         print()
-        print("Boards showing '-' are not in boards.json, so -Board cannot "
-              "address them.")
+        print(
+            "Boards showing '-' are not in boards.json, so -Board cannot address them."
+        )
     return 0
 
 

@@ -57,8 +57,9 @@ sign.hidden = True
 # Your own id in the corner, the same as lesson 201 -- this is the number your
 # partner has to type into THEIR copy of this file, so it has to be readable
 # from across the room.
-badge = screen.text(my_id, colors.AMBER, 64 - 4 * len(my_id), 3,
-                    font=screen.Fonts.SMALL)
+badge = screen.text(
+    my_id, colors.AMBER, 64 - 4 * len(my_id), 3, font=screen.Fonts.SMALL
+)
 
 # Their block is bright and yours is dim, so there is never any doubt which is
 # which -- and a dim block that still answers your tilt tells you your own

@@ -65,10 +65,14 @@ def stage_join(sign):
 
     # If this says anything below 3.3.0, stop: the board will associate and
     # then fail every socket_open, which reads like a bug in the spike.
-    print("join   %s at %s in %.2f s, nina-fw %s"
-          % (name, address, took, network.firmware_version()))
-    print("id     board %s  uid %s"
-          % (name, "".join("%02x" % b for b in microcontroller.cpu.uid)))
+    print(
+        "join   %s at %s in %.2f s, nina-fw %s"
+        % (name, address, took, network.firmware_version())
+    )
+    print(
+        "id     board %s  uid %s"
+        % (name, "".join("%02x" % b for b in microcontroller.cpu.uid))
+    )
     show(sign, name)
     return name, address
 
@@ -108,8 +112,10 @@ def stage_echo(name, sign):
         else:
             theirs += 1
 
-    print("echo   %s own broadcast %d, own unicast %d, partner's %d"
-          % (name, mine["bcast"], mine["unicast"], theirs))
+    print(
+        "echo   %s own broadcast %d, own unicast %d, partner's %d"
+        % (name, mine["bcast"], mine["unicast"], theirs)
+    )
     return mine["bcast"] > 0
 
 
@@ -158,8 +164,10 @@ def stage_hear(name, sign, seconds=12.0, seen=None):
 
         for other in list(seen):
             if now - seen[other] > FORGET:
-                print("hear   %s -- LOST %s (silent %.1f s)"
-                      % (name, other, now - seen[other]))
+                print(
+                    "hear   %s -- LOST %s (silent %.1f s)"
+                    % (name, other, now - seen[other])
+                )
                 del seen[other]
                 known.discard(other)
 
@@ -170,7 +178,9 @@ def stage_hear(name, sign, seconds=12.0, seen=None):
         print("hear   %s heard NOBODY -- is the other board running this too?" % name)
         return None
     partner = sorted(seen)[0]
-    print("hear   %s partner is %s at %s" % (name, partner, network.address_of(partner)))
+    print(
+        "hear   %s partner is %s at %s" % (name, partner, network.address_of(partner))
+    )
     return partner
 
 
@@ -210,8 +220,10 @@ def stage_ping(name, partner, sign):
 
     if trips:
         trips.sort()
-        print("ping   %s best %.1f  median %.1f  worst %.1f ms, lost %d/%d"
-              % (name, trips[0], trips[len(trips) // 2], trips[-1], lost, PINGS))
+        print(
+            "ping   %s best %.1f  median %.1f  worst %.1f ms, lost %d/%d"
+            % (name, trips[0], trips[len(trips) // 2], trips[-1], lost, PINGS)
+        )
     else:
         print("ping   %s got NOTHING back from %s" % (name, partner))
 
@@ -241,8 +253,10 @@ def stage_load(name, partner, sign):
         if spent > worst:
             worst = spent
 
-    print("load   %s %.2f ms/frame average, worst %.2f, heard %d in %d frames"
-          % (name, total / LOAD_FRAMES, worst, heard, LOAD_FRAMES))
+    print(
+        "load   %s %.2f ms/frame average, worst %.2f, heard %d in %d frames"
+        % (name, total / LOAD_FRAMES, worst, heard, LOAD_FRAMES)
+    )
 
 
 # The panel comes up FIRST and stays up. network.start() blocks for seconds and

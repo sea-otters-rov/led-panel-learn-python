@@ -81,7 +81,6 @@ def start(tries: int = 8) -> str:
     _listen = _esp.get_socket()
     _esp.start_server(PORT, _listen, conn_mode=_esp.UDP_MODE)
 
-
     print("network: board", my_id, "ready at", my_address)
     return my_id
 
@@ -110,8 +109,7 @@ def address_of(board_id) -> str:
     if not 1 <= number <= 254:
         raise ValueError(
             "network: board id %d does not exist. Ids run 1 to 254 -- 0 and 255 "
-            "are the network and everyone, so no board is ever called those."
-            % number
+            "are the network and everyone, so no board is ever called those." % number
         )
     return _prefix + str(number)
 

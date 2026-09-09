@@ -52,8 +52,7 @@ def lessons():
         names = sorted(os.listdir(LESSONS))
     except OSError:
         return []
-    return [n for n in names
-            if os.path.isfile(os.path.join(LESSONS, n, "main.py"))]
+    return [n for n in names if os.path.isfile(os.path.join(LESSONS, n, "main.py"))]
 
 
 def number(folder):
@@ -112,7 +111,9 @@ def switch(name):
 
     root = cached() or discover()
     if not root:
-        print("[lesson] No board found -- the change is saved, sync when it is plugged in.")
+        print(
+            "[lesson] No board found -- the change is saved, sync when it is plugged in."
+        )
         return 0
     try:
         copy(CODE_PY, os.path.join(root, "code.py"))
@@ -126,8 +127,10 @@ def switch(name):
 def main():
     names = lessons()
     if not names:
-        print(r"[lesson] No lessons found. A lesson is a folder under lessons\ "
-              r"containing a main.py.")
+        print(
+            r"[lesson] No lessons found. A lesson is a folder under lessons\ "
+            r"containing a main.py."
+        )
         return 1
 
     arg = sys.argv[1] if len(sys.argv) > 1 else None

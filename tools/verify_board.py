@@ -56,8 +56,11 @@ class Ambiguous(Exception):
 
 
 def find_port():
-    cands = [p for p in serial.tools.list_ports.comports()
-             if "VID:PID=239A" in (p.hwid or "").upper()]
+    cands = [
+        p
+        for p in serial.tools.list_ports.comports()
+        if "VID:PID=239A" in (p.hwid or "").upper()
+    ]
     if not cands:
         return None
     # MI_00 is the console interface; a second one appears only when
@@ -78,8 +81,11 @@ def current_lesson():
     """Whatever code.py imports, for the report line. Best effort only."""
     try:
         with open(os.path.join(REPO, "lessons", "code.py")) as fh:
-            m = re.search(r"^\s*(?:from\s+(\S+)\s+import\s+(\S+)|import\s+(\S+))",
-                          fh.read(), re.MULTILINE)
+            m = re.search(
+                r"^\s*(?:from\s+(\S+)\s+import\s+(\S+)|import\s+(\S+))",
+                fh.read(),
+                re.MULTILINE,
+            )
     except OSError:
         return None
     if not m:
@@ -108,12 +114,21 @@ def open_port(port, attempts, wait):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--timeout", type=float, default=10.0,
-                    help="seconds to listen after the reload (default 10)")
-    ap.add_argument("--attempts", type=int, default=3,
-                    help="tries at opening a busy port (default 3)")
-    ap.add_argument("--wait", type=float, default=2.0,
-                    help="seconds between attempts (default 2)")
+    ap.add_argument(
+        "--timeout",
+        type=float,
+        default=10.0,
+        help="seconds to listen after the reload (default 10)",
+    )
+    ap.add_argument(
+        "--attempts",
+        type=int,
+        default=3,
+        help="tries at opening a busy port (default 3)",
+    )
+    ap.add_argument(
+        "--wait", type=float, default=2.0, help="seconds between attempts (default 2)"
+    )
     ap.add_argument("--port", help="override the auto-detected COM port")
     ap.add_argument("--board", help="which board, by label in tools\\boards.json")
     args = ap.parse_args()
@@ -128,8 +143,10 @@ def main():
             print(f"[verify] {exc}")
             return 3
         if not port:
-            print(f"[verify] Board {args.board!r} is mounted but has no serial "
-                  f"port. Unplug and replug it.")
+            print(
+                f"[verify] Board {args.board!r} is mounted but has no serial "
+                f"port. Unplug and replug it."
+            )
             return 3
 
     if not port:
@@ -175,8 +192,10 @@ def main():
     _, found, run = text.rpartition(MARKER)
 
     if not found:
-        print("[verify] Board never reached code.py. It may be held in the REPL, "
-              "or code.py is missing. Try tools\\sync.ps1 -Clean.")
+        print(
+            "[verify] Board never reached code.py. It may be held in the REPL, "
+            "or code.py is missing. Try tools\\sync.ps1 -Clean."
+        )
         return 1
 
     lines = [ln.rstrip() for ln in run.splitlines() if ln.strip()]

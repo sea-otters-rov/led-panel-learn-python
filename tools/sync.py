@@ -168,7 +168,8 @@ def wanted_uid():
     except KeyError:
         raise LookupError(
             f"LEARNPY_BOARD={label!r} is not in tools\\boards.json. "
-            f"It knows: {', '.join(sorted(known)) or '(nothing)'}")
+            f"It knows: {', '.join(sorted(known)) or '(nothing)'}"
+        )
 
 
 def discover(want=None):
@@ -192,10 +193,11 @@ def discover(want=None):
     if not found:
         return None
     if len(found) > 1:
-        print(f"[sync] {len(found)} boards attached: "
-              f"{', '.join(r for r, _ in found)}.")
-        print("       Set LEARNPY_BOARD=A (see tools\\boards.json) so saves go "
-              "to a known one.")
+        print(f"[sync] {len(found)} boards attached: {', '.join(r for r, _ in found)}.")
+        print(
+            "       Set LEARNPY_BOARD=A (see tools\\boards.json) so saves go "
+            "to a known one."
+        )
         return AMBIGUOUS
 
     root, uid = found[0]
@@ -247,9 +249,11 @@ def copy(src, dst):
     # student. Strip it rather than ship a file the board cannot parse, but say
     # so, because the editor that wrote it will keep writing it.
     if src.endswith(".py") and data.startswith(BOM):
-        data = data[len(BOM):]
-        print(f"[sync] stripped a UTF-8 BOM from {os.path.basename(src)} -- "
-              f"the board cannot parse one. Save it as UTF-8 without BOM.")
+        data = data[len(BOM) :]
+        print(
+            f"[sync] stripped a UTF-8 BOM from {os.path.basename(src)} -- "
+            f"the board cannot parse one. Save it as UTF-8 without BOM."
+        )
     with open(dst, "wb") as fh:
         fh.write(data)
 
@@ -266,7 +270,7 @@ def main():
     # Saves outside lessons\ (tools, README, firmware) are not board content.
     if not os.path.normcase(src).startswith(LESSONS + os.sep):
         return 0
-    rel = src[len(LESSONS) + 1:]
+    rel = src[len(LESSONS) + 1 :]
 
     try:
         want = wanted_uid()

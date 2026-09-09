@@ -57,10 +57,15 @@ def wait_for_drive(seconds):
 
 def main():
     ap = argparse.ArgumentParser(description="Erase a corrupted CIRCUITPY filesystem.")
-    ap.add_argument("--yes", action="store_true",
-                    help="required; confirms you want the board wiped")
-    ap.add_argument("--wait", type=float, default=45.0,
-                    help="seconds to wait for the drive to return (default 45)")
+    ap.add_argument(
+        "--yes", action="store_true", help="required; confirms you want the board wiped"
+    )
+    ap.add_argument(
+        "--wait",
+        type=float,
+        default=45.0,
+        help="seconds to wait for the drive to return (default 45)",
+    )
     args = ap.parse_args()
 
     if not args.yes:
@@ -90,8 +95,10 @@ def main():
 
         banner = ser.read(4096).decode("utf-8", "replace")
         if ">>>" not in banner:
-            print("[reset] No REPL prompt. The board may be running something that "
-                  "ignores Ctrl-C; unplug it, plug it back in, and retry.")
+            print(
+                "[reset] No REPL prompt. The board may be running something that "
+                "ignores Ctrl-C; unplug it, plug it back in, and retry."
+            )
             return 1
 
         print("[reset] erasing...")
@@ -103,7 +110,9 @@ def main():
 
     root = wait_for_drive(args.wait)
     if not root:
-        print(f"[reset] Erased, but CIRCUITPY did not reappear within {args.wait:.0f}s.")
+        print(
+            f"[reset] Erased, but CIRCUITPY did not reappear within {args.wait:.0f}s."
+        )
         print("        Unplug and replug the board, then run the sync.")
         return 1
 

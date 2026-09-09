@@ -53,8 +53,10 @@ def open_all(labels):
             print(f"[watch] {exc}")
             return None
         if not board["port"]:
-            print(f"[watch] Board {label} is mounted at {board['root']} but has "
-                  f"no serial port. Unplug and replug it.")
+            print(
+                f"[watch] Board {label} is mounted at {board['root']} but has "
+                f"no serial port. Unplug and replug it."
+            )
             return None
         try:
             opened[label] = serial.Serial(board["port"], 115200, timeout=0)
@@ -71,12 +73,20 @@ def open_all(labels):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--boards", default="A,B",
-                    help="labels to watch, comma separated (default A,B)")
-    ap.add_argument("--reload", action="store_true",
-                    help="Ctrl-C + Ctrl-D both boards before listening")
-    ap.add_argument("--seconds", type=float, default=0,
-                    help="stop after this long (default: until Ctrl-C)")
+    ap.add_argument(
+        "--boards", default="A,B", help="labels to watch, comma separated (default A,B)"
+    )
+    ap.add_argument(
+        "--reload",
+        action="store_true",
+        help="Ctrl-C + Ctrl-D both boards before listening",
+    )
+    ap.add_argument(
+        "--seconds",
+        type=float,
+        default=0,
+        help="stop after this long (default: until Ctrl-C)",
+    )
     ap.add_argument("--plain", action="store_true", help="no colour")
     args = ap.parse_args()
 
