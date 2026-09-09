@@ -658,8 +658,13 @@ not mention `L99_breakout_done`.
 built and verified. The two-board spike is **done and board-to-board is now
 verified** — see the networking notes above and the "Part 2: two panels"
 section at the end of `docs\lesson-plan-notes.md`, which records what the spike
-changed. **Lesson 13 is written and runs on both boards**; 14–19 are not, and
-the ball handoff (17) is the one piece still unspiked.
+changed.
+
+**Lessons 13 and 14 are written and verified on both boards.** 14 is
+`L14_move_their_block`: type your partner's id, unicast your tilt every frame,
+their block moves on your panel — 17.7–18.4 ms/frame all in, against a 33 ms
+budget. 15–19 are not written, and the ball handoff (17) is the one piece still
+unspiked.
 
 **Lessons 01–12 are written and verified on hardware**, plus
 `L99_breakout_done`, a worked answer to the capstone. 12 ships as a working

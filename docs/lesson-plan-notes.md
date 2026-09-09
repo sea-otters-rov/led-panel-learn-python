@@ -543,7 +543,7 @@ boards disagree. That is the honest content of lesson 19.
 | # | What they make | New idea |
 | --- | --- | --- |
 | 13 | Nudge your board, your words appear on everyone else's panel | Two boards can talk. Mirrors L01. **Written** |
-| 14 | Your tilt moves a block on *their* screen | `float()` on a received string — the reverse of L10's `str()` |
+| 14 | Your tilt moves a block on *their* screen | `float()` on a received string — the reverse of L10's `str()`. **Written** |
 | 15 | Several numbers in one message | `.split()`, which returns a list they know from L07 |
 | 16 | The roster: who is here, and who just rebooted | Keeping a copy of something that lives elsewhere |
 | 17 | **The ball crosses between panels** | Ownership and handoff. The hard one |
@@ -608,6 +608,37 @@ Three things the one-board work had wrong, all now in `CLAUDE.md`:
 And the number that shapes every networked lesson: **every Ctrl+S costs ~4.5 s
 off the network**, mostly the wifi rejoin. A lesson whose partner vanishing for
 four seconds looks like a failure is a lesson that fails constantly.
+
+### Lesson 14, written and verified 2026-09-08
+
+`L14_move_their_block`. You type your partner's id, unicast your tilt to them
+every frame, and their tilt moves the bright block on your panel; your own
+block is drawn dim from your own tilt, so a board with no partner still does
+something. Verified on two boards: `str(0.12178392)` went out and came back as
+`+0.122` at the far end, both directions.
+
+**Frame cost 17.7–18.4 ms** (tilt read, one unicast, drain-to-newest receive,
+two block moves, `screen.draw()`), against the spike's 15.3 ms for network
+alone. ~15 ms of headroom in a 33 ms frame. Message flow was 200–206 received
+per 240 frames — under one per frame, and not growing, so the inbox does not
+back up.
+
+Two things it does that the arc did not call for, both earned:
+
+- **It drains the inbox to the newest message** rather than taking one per
+  turn. Two boards never run at exactly the same speed, so one-per-turn lets
+  the spare messages pile up and the partner's block falls permanently behind.
+  The drain is `while heard:` around the `float()`, and `their_tilt_x` simply
+  keeps its old value when nothing arrives — which is also the honest
+  behaviour, and a first taste of 16's "keep a copy of something that lives
+  elsewhere".
+- **It prints `network.address_of(partner_id)` once at startup**, which is the
+  only place in the course a student sees an id expand into an address. That
+  is the whole justification for exposing `address_of` at all.
+
+`str(tilt_x)` sends 8 significant digits — about 10 characters for a value a
+64-pixel screen can only use 6 bits of. Nothing to fix at 18 ms/frame, but it
+is the obvious thing to trim if 17's ball message ever gets tight.
 
 Still unspiked: **the handoff itself** (arc item 17). That is the one remaining
 place where two boards can disagree, and it wants doing before 17 is written,
