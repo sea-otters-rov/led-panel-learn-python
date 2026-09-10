@@ -545,7 +545,7 @@ boards disagree. That is the honest content of lesson 207.
 | 201 | Nudge your board, your words appear on everyone else's panel | Two boards can talk. Mirrors L101. **Written** |
 | 202 | Your tilt moves a block on *their* screen | `float()` on a received string — the reverse of L110's `str()`. **Written** |
 | 203 | Several numbers in one message, and checking one before trusting it | `.split()`, which returns a list they know from L107. **Written** |
-| 204 | The roster: who is here, and who just rebooted | Keeping a copy of something that lives elsewhere |
+| 204 | The roster: who is here, and who just rebooted | The dictionary — and keeping a copy of something that lives elsewhere. **Written** |
 | 205 | **The ball crosses between panels** | Ownership and handoff. The hard one |
 | 206 | Both panels agree on the score | One side is the authority; the other is told |
 | 207 | The serve, and the finished game | Protocol, and what to do when two boards disagree |
@@ -678,6 +678,54 @@ to send a fixed `0.9` regardless of their real tilt, or a number no real tilt
 could produce, and asked whether their partner could possibly tell. That is
 the seed for cheating and cheat-detection later, and it is why 202 is left
 crashing rather than hardened.
+
+### Lesson 204, written and verified 2026-09-09
+
+`L204_who_is_here`. Each board broadcasts `here <id>` once a second, keeps a
+dict of id -> when last heard, forgets anyone silent for 3 s, and shows the
+roster on five lines of the small font.
+
+**The dictionary is the new idea, not a second one.** Nothing in 101-112 uses
+a dict — checked, the course only has lists — and a roster is exactly a
+mapping from name to last-seen, so the structure and the concept arrive
+together. Parallel lists were never an option (see the Drawing notes).
+
+Verified on hardware, and it is the demo the design notes hoped for:
+
+        28.5  B  Code stopped by auto-reload
+        29.7  B  soft reboot
+        31.6  A  lost board 4        <- 3.0 s of silence, exactly FORGET_AFTER
+        33.4  B  network: board 4 ready
+        34.8  A  new board 4
+
+B was off A's roster for ~3.2 s across one Ctrl+S, and A carried no detection
+logic whatsoever. Students watch each other save.
+
+Two deliberate contrasts with 203, both called out in the lesson:
+
+- **Read every message, not the newest.** 203 keeps only the newest because
+  every message is the same partner restating one value. 204 must read them
+  all, because each one is a different board. Same `while msg is not None`
+  loop, opposite reason.
+- **`show_id=False`.** 204 is the first caller that wants `join_wifi()` without
+  the corner badge, because the roster puts the board's own id in the list.
+  That parameter existed but was never read until now.
+
+Colours are set once at construction and never in the loop, per the `.color`
+measurement in `CLAUDE.md` — five labels re-coloured every frame would cost
+~45 ms. The `.text` assignments stay in the loop, because an unchanged string
+short-circuits at 0.39 ms.
+
+The mischief exercises land here too: `here 99` invents a board that is not in
+the room, and `here <a switched-off neighbour's id>` keeps them on everyone's
+roster forever. **Nothing anywhere checks that a name belongs to whoever sent
+it** -- which is true of the real design as well, not just the lesson.
+
+**Correction to the earlier plan: the safe float parse does NOT belong in 204.**
+The roster's messages carry an id and nothing else, so there is no number to
+parse and no honest motivation for `try`/`except` here. It moves to 205 with
+the ball, alongside the range check -- see the note above on why parsing alone
+is not enough.
 
 Still unspiked: **the handoff itself** (arc item 205). That is the one remaining
 place where two boards can disagree, and it wants doing before 17 is written,

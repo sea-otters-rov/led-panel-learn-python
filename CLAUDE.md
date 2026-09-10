@@ -620,6 +620,28 @@ A cell is **4x5**: one blank column to the right of each letter, and *no* blank
 row underneath. The horizontal gap has to be in the sheet or words run together;
 a vertical one does not, because a lesson positions each line itself.
 
+**`float()` accepts more than numbers, so `try`/`except` alone is not a safe
+parse.** Measured on hardware 2026-09-09:
+
+    'banana' '' '0x10'      ValueError                    <- try/except catches
+    'inf' 'Infinity' 'nan'  parse fine, then int() raises
+    '1e400'                 parses as inf, then int() raises
+
+    int(inf * 32)   OverflowError: can't convert inf to int
+    int(nan * 32)   ValueError: can't convert NaN to int
+
+So wrapping `float()` moves the crash rather than removing it, and into a
+different function with a different exception — strictly harder to debug than
+the honest failure. **The range check is what actually closes it**, and it
+catches all of them, `nan` included, because `nan` fails every comparison:
+
+    -1.0 <= float('inf') <= 1.0   is False
+    -1.0 <= float('nan') <= 1.0   is False
+
+Which is why validation lands with the ball in 205 and not earlier: a bounds
+check has a gameplay reason to exist there, and it is the same check that later
+catches a partner sending numbers their board never measured.
+
 **`screen.delete_shape()` takes a shape out of the group; it does not free it.**
 Verified on hardware 2026-09-09 for `block`, `circle`, `burst` and `text` in
 both fonts. Two things the one-line docstring does not have room for:
@@ -745,8 +767,11 @@ changed.
 their block moves on your panel — 17.7–18.4 ms/frame all in, against a 33 ms
 budget. 203 is `L203_two_numbers`: `tilt <x> <y>` in one message, `.split()` to
 take it apart, and a tag check so a message from a board still on 201 is
-ignored instead of stopping the board. 204–207 are not written, and the ball
-handoff (205) is the one piece still unspiked.
+ignored instead of stopping the board. 204 is `L204_who_is_here`: a `here <id>`
+heartbeat, a dict of id → last-heard, and absence as the only departure signal
+— verified across a real Ctrl+S, 3.2 s off the roster and back with no
+detection logic. 205–207 are not written, and the ball handoff (205) is the one
+piece still unspiked.
 
 **202 crashes on purpose and must stay that way.** A board on 202 dies the
 moment anyone in the room nudges a board still on 201 — `float("5: hello!")`.
