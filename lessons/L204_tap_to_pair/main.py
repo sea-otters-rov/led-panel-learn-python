@@ -124,8 +124,7 @@ while True:
     # Whoever we decide to pair with this time round, if anyone.
     new_partner = None
 
-    msg = network.receive()
-    while msg is not None:
+    for msg in network.receive_all():
         msg_parts = msg.split(" ")
 
         if partner_id is None:
@@ -154,8 +153,6 @@ while True:
             heard_from_partner = now
             theirs.x = tilt_to_x(float(msg_parts[2]), their_size)
             theirs.y = tilt_to_y(float(msg_parts[3]), their_size)
-
-        msg = network.receive()
 
     # Two knocks at about the same moment: that was one knock, and it touched
     # both boards. abs() throws away the sign, so it does not matter whose

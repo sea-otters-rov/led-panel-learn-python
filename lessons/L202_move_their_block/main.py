@@ -78,16 +78,12 @@ block_center_x = theirs.width // 2
 # just use that and ignore old messages.
 def get_newest_message():
     newest_msg = None
-    # Loop forever, but we're going to abort as soon as we run out of new messages
-    while True:
-        msg = network.receive()
-        if msg is not None:
-            # Did we receive something? If so, keep it as the newest
-            newest_msg = msg
-        else:
-            # No more waiting messages, abort the loop and return what we
-            # got. Note if we didn't get anything, newest_msg will still be None
-            return newest_msg
+    for newest_msg in network.receive_all():
+        pass  # Do nothing, just keep overwriting our variable with messages
+
+    # No more waiting messages, return what we got. Note if we didn't get
+    # anything, newest_msg will still be None
+    return newest_msg
 
 
 def message_to_number(text):

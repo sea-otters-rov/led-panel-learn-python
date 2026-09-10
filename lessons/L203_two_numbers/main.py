@@ -81,12 +81,12 @@ def tilt_to_message(x, y):
 def get_newest_message():
     # Exactly as in lesson 202: take everything waiting and keep the last one.
     newest_msg = None
-    while True:
-        msg = network.receive()
-        if msg is not None:
-            newest_msg = msg
-        else:
-            return newest_msg
+    for newest_msg in network.receive_all():
+        pass  # Do nothing, just keep overwriting our variable with messages
+
+    # No more waiting messages, return what we got. Note if we didn't get
+    # anything, newest_msg will still be None
+    return newest_msg
 
 
 while True:

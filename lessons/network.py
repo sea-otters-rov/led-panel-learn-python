@@ -215,3 +215,12 @@ def receive() -> str | None:
     message = _inbox[:cut]
     _inbox = _inbox[cut + 1 :]
     return message if message else None
+
+
+def receive_all():
+    """Yield every message currently waiting, oldest first, then stop."""
+    while True:
+        msg = receive()
+        if msg is None:
+            return
+        yield msg
