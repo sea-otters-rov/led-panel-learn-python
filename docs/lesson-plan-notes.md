@@ -545,7 +545,7 @@ boards disagree. That is the honest content of lesson 207.
 | 201 | Nudge your board, your words appear on everyone else's panel | Two boards can talk. Mirrors L101. **Written** |
 | 202 | Your tilt moves a block on *their* screen | `float()` on a received string — the reverse of L110's `str()`. **Written** |
 | 203 | Several numbers in one message, and checking one before trusting it | `.split()`, which returns a list they know from L107. **Written** |
-| 204 | The roster: who is here, and who just rebooted | The dictionary — and keeping a copy of something that lives elsewhere. **Written** |
+| 204 | Knock two boards together and they pair up | Two events close in time are one event. No typed id, no dict. **Written** |
 | 205 | **The ball crosses between panels** | Ownership and handoff. The hard one |
 | 206 | Both panels agree on the score | One side is the authority; the other is told |
 | 207 | The serve, and the finished game | Protocol, and what to do when two boards disagree |
@@ -681,51 +681,54 @@ crashing rather than hardened.
 
 ### Lesson 204, written and verified 2026-09-09
 
-`L204_who_is_here`. Each board broadcasts `here <id>` once a second, keeps a
-dict of id -> when last heard, forgets anyone silent for 3 s, and shows the
-roster on five lines of the small font.
+`L204_tap_to_pair`. Knock the two boards together; both feel it, both broadcast
+`tap <id>`, and each pairs with whoever was knocked at the same moment. Then
+tilt drives the partner's shape, as in 203, but with nothing typed anywhere.
 
-**The dictionary is the new idea, not a second one.** Nothing in 101-112 uses
-a dict — checked, the course only has lists — and a roster is exactly a
-mapping from name to last-seen, so the structure and the concept arrive
-together. Parallel lists were never an option (see the Drawing notes).
+**The roster was cut, and the dictionary with it.** It had been the plan since
+the original arc, and it did not survive contact with two questions: does
+anything else need a dict, and does the roster earn a whole lesson? No to both.
+205 is two-board ball state, 206 is two scores, 207 is two tilts -- no mapping
+anywhere. The roster's real job was discovery, and knocking does that better,
+physically, and with no new data structure. Presence survives as **one partner
+and one timestamp** -- a float -- which keeps "absence is the disconnect
+signal" without the dict.
 
-Verified on hardware, and it is the demo the design notes hoped for:
+The layout was the tell. Six boards need six lines; the small font is 5 rows
+tall with no built-in gap, so at the 6px spacing the roster used, the sixth
+board's line starts at y=33 on a 32-row screen and vanishes silently. Five
+lines fit, six do not. A display that cannot show the class is a sign the
+feature was carrying weight it had not earned.
 
-        28.5  B  Code stopped by auto-reload
-        29.7  B  soft reboot
-        31.6  A  lost board 4        <- 3.0 s of silence, exactly FORGET_AFTER
-        33.4  B  network: board 4 ready
-        34.8  A  new board 4
+Verified on hardware, both directions:
 
-B was off A's roster for ~3.2 s across one Ctrl+S, and A carried no detection
-logic whatsoever. Students watch each other save.
+        6.0  B  paired with board 5
+        6.3  A  paired with board 4
 
-Two deliberate contrasts with 203, both called out in the lesson:
+       35.7  B  Code stopped by auto-reload
+       36.9  B  soft reboot
+       38.7  A  lost board 4        <- 3.0 s after B's last message
+       41.2  B  network: board 4 ready
 
-- **Read every message, not the newest.** 203 keeps only the newest because
-  every message is the same partner restating one value. 204 must read them
-  all, because each one is a different board. Same `while msg is not None`
-  loop, opposite reason.
-- **`show_id=False`.** 204 is the first caller that wants `join_wifi()` without
-  the corner badge, because the roster puts the board's own id in the list.
-  That parameter existed but was never read until now.
+**Pairing has to be symmetric, and the naive version is not.** If A knocks
+first, A's message reaches B before B has knocked, so B discards it; B then
+knocks, A pairs, and B never does. Storing the last heard tap and comparing
+`abs(my_tap_time - their_tap_time)` fixes it, because both boards evaluate the
+same condition whichever order the messages arrived in.
 
-Colours are set once at construction and never in the loop, per the `.color`
-measurement in `CLAUDE.md` — five labels re-coloured every frame would cost
-~45 ms. The `.text` assignments stay in the loop, because an unchanged string
-short-circuits at 0.39 ms.
+`their_tap_id` is cleared once used. Without that, the two stored times stay
+close forever, so a board that timed out its partner would silently re-pair off
+the knocks from several minutes ago instead of waiting for a fresh one.
 
-The mischief exercises land here too: `here 99` invents a board that is not in
-the room, and `here <a switched-off neighbour's id>` keeps them on everyone's
-roster forever. **Nothing anywhere checks that a name belongs to whoever sent
-it** -- which is true of the real design as well, not just the lesson.
+**The tilt message now carries its sender: `tilt <id> <x> <y>`.** Without it,
+pairing is decorative -- any board could drive your shape, since a receiver
+never learns who sent a datagram. This is also the first lesson where the
+message kind on the front does real work, because there are finally two kinds.
 
-**Correction to the earlier plan: the safe float parse does NOT belong in 204.**
-The roster's messages carry an id and nothing else, so there is no number to
-parse and no honest motivation for `try`/`except` here. It moves to 205 with
-the ball, alongside the range check -- see the note above on why parsing alone
-is not enough.
+**A pairing still cannot survive a save**, and the answer is now better than
+the roster's: knock the boards together again. That is honest, physical, and
+visible, where "recover the pairing from your partner" was machinery a student
+would never see.
 
 Still unspiked: **the handoff itself** (arc item 205). That is the one remaining
 place where two boards can disagree, and it wants doing before 17 is written,

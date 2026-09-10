@@ -37,26 +37,22 @@ import interactions
 partner_id = 4
 
 my_color = colors.JADE
+my_size = 2
 their_color = colors.MAGENTA
+their_size = 4
 
 # The word every one of our messages starts with. Your board only believes a
 # message that begins with this, so a message meant for a different lesson --
 # or for a different game -- gets quietly ignored instead of crashing you.
-MESSAGE_KIND = "tilt"
+message_kind = "tilt"
 
 # All the same wifi connection code tucked away in a function we can reuse
 my_id = interactions.join_wifi()
 
 print(f"I am board {my_id}, talking to board {partner_id}")
 
-# Keep the sizes in variables. A circle cannot tell you its own size later --
-# asking a circle for its .width gives you 1, because it counts tiles and not
-# pixels -- so if you only wrote the number inside the brackets it is gone.
-THEIR_SIZE = 4
-MY_SIZE = 2
-
-theirs = screen.circle(THEIR_SIZE, their_color, 0, 0)
-mine = screen.circle(MY_SIZE, my_color, 0, 0)
+theirs = screen.circle(their_size, their_color, 0, 0)
+mine = screen.circle(my_size, my_color, 0, 0)
 
 screen_center_x = screen.WIDTH // 2
 screen_center_y = screen.HEIGHT // 2
@@ -79,7 +75,7 @@ def tilt_to_y(tilt, size):
 def tilt_to_message(x, y):
     # Three parts with a space between each: what kind of message this is,
     # then the two numbers. The spaces are what .split() looks for at the other end.
-    return f"{MESSAGE_KIND} {x} {y}"
+    return f"{message_kind} {x} {y}"
 
 
 def get_newest_message():
@@ -111,19 +107,19 @@ while True:
         # It needs to start with the right `kind` and have the right length
         # Anything else is ignored. A "hello!" from someone still on lesson 201 is
         # the wrong `kind` and wrong length. Neither can crash you now!
-        if len(msg_parts) == 3 and msg_parts[0] == MESSAGE_KIND:
-            theirs.x = tilt_to_x(float(msg_parts[1]), THEIR_SIZE)
-            theirs.y = tilt_to_y(float(msg_parts[2]), THEIR_SIZE)
+        if len(msg_parts) == 3 and msg_parts[0] == message_kind:
+            theirs.x = tilt_to_x(float(msg_parts[1]), their_size)
+            theirs.y = tilt_to_y(float(msg_parts[2]), their_size)
 
-    mine.x = tilt_to_x(tilt_x, MY_SIZE)
-    mine.y = tilt_to_y(tilt_y, MY_SIZE)
+    mine.x = tilt_to_x(tilt_x, my_size)
+    mine.y = tilt_to_y(tilt_y, my_size)
 
     screen.draw()
 
 # Try these:
 #   - Get someone to switch a board back to lesson 201 and nudge it. In lesson
 #     202 that crashed your board. Now nothing happens at all. Why?
-#   - Change MESSAGE_KIND to "moo" on YOUR board only. Nothing crashes and
+#   - Change message_kind to "moo" on YOUR board only. Nothing crashes and
 #     nothing complains. Both of you stop moving. How long would it take you to
 #     work out why, if you had not just done it on purpose?
 #   - Just for fun, how hard is it to follow your partner? Would a game that measured

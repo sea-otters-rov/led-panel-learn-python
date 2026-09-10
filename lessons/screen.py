@@ -110,15 +110,15 @@ def burst(size: int, color: int, frames: int = 10, x: int = 0, y: int = 0):
     key = (size, frames)
     if key not in _sheets:
         sheet = displayio.Bitmap(size * frames, size, 2)
-        centre = (size - 1) / 2
+        center = (size - 1) / 2
         biggest = size / 2
         for frame in range(frames):
             outer = biggest * (frame + 1) / frames
             inner = outer - 1.6  # ring thickness; below zero means a solid blob
             for row in range(size):
                 for column in range(size):
-                    across = column - centre
-                    down = row - centre
+                    across = column - center
+                    down = row - center
                     away = across * across + down * down
                     if away > outer * outer + 0.5:
                         continue
@@ -199,7 +199,7 @@ def text(
 
     Pass font=screen.Fonts.SMALL for tiny letters: 16 fit across the screen instead
     10, and you can stack five lines instead of two. Everything else works the
-    same either way -- change the words with .text, the colour with .color, and
+    same either way -- change the words with .text, the color with .color, and
     move it with .x and .y.
     """
     from adafruit_display_text import label

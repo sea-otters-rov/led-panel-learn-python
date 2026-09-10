@@ -5,4 +5,4 @@ That is the only reason to edit this file -- your actual work happens in the
 lesson file itself.
 """
 
-from L204_who_is_here import main
+from L204_tap_to_pair import main

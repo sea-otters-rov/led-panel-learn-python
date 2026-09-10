@@ -222,10 +222,11 @@ working *on* the project.
   configuration we have not got round to.
 
   **Consequence for Part 2: a pairing cannot survive a reboot**, and every
-  Ctrl+S is a reboot. There is nowhere to persist it. So a pairing has to
-  live in RAM and be *re-established from the partner* when a board comes
-  back — which is the roster the design already calls for, and one more
-  argument for "absence is the disconnect signal" over any stored pairing.
+  Ctrl+S is a reboot. There is nowhere to persist it. So a pairing lives in
+  RAM and has to be made again — and lesson 204 settles what "again" means:
+  **knock the boards together**. That is better than recovering it from a
+  partner, because it is physical and the student can see it happen, where
+  silent recovery is machinery they would never meet.
 
 - **~2 MB of flash**, ~1.83 MB free with the current library set. Check headroom
   before adding libraries.
@@ -347,6 +348,12 @@ restarts. Say so when adding one, instead of letting the next prompt reveal it.
   Use `from . import helper` for a sibling module and a leading-slash absolute
   path for data files. Deriving the path from `__file__` also works and survives
   a folder rename, but it is too much machinery to put in front of a beginner.
+- **American spellings, and no SCREAMING_CAPS in lesson code.** `color`, not
+  `colour`; `center`, not `centre`. And a value a lesson defines and a student
+  might edit stays `snake_case` — `tap_force`, `message_kind` — because naming
+  conventions for constants were never taught and nothing enforces them.
+  `colors.RED`, `screen.WIDTH` and `screen.Fonts.SMALL` keep their caps: those
+  are library surface a student reads rather than writes.
 - **Lesson content stays OS-neutral.** A lesson may end up running on a Linux
   laptop, and rewriting twelve lessons is the expensive kind of port. Inside
   `lessons\`, never write:
@@ -767,11 +774,16 @@ changed.
 their block moves on your panel — 17.7–18.4 ms/frame all in, against a 33 ms
 budget. 203 is `L203_two_numbers`: `tilt <x> <y>` in one message, `.split()` to
 take it apart, and a tag check so a message from a board still on 201 is
-ignored instead of stopping the board. 204 is `L204_who_is_here`: a `here <id>`
-heartbeat, a dict of id → last-heard, and absence as the only departure signal
-— verified across a real Ctrl+S, 3.2 s off the roster and back with no
-detection logic. 205–207 are not written, and the ball handoff (205) is the one
-piece still unspiked.
+ignored instead of stopping the board. 204 is `L204_tap_to_pair`: knock two
+boards together and they pair, because both were knocked at the same moment —
+no typed id, and presence kept as one partner plus one timestamp. 205–207 are
+not written, and the ball handoff (205) is the one piece still unspiked.
+
+**The roster lesson was designed, written, verified, and then cut** on
+2026-09-09. Nothing else in the arc needs a dict, knocking beats a roster for
+discovery, and six boards would not fit its five-line display. It is in git
+history if it is ever wanted; do not reintroduce it without a reason the
+pairing does not already cover.
 
 **202 crashes on purpose and must stay that way.** A board on 202 dies the
 moment anyone in the room nudges a board still on 201 — `float("5: hello!")`.

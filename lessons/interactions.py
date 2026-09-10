@@ -38,10 +38,10 @@ def smoothed_tilt():
 
     raw_tilt = screen.tilt()
 
-    smoothed_tilt = (
+    adjusted_tilt = (
         (raw_tilt[0] + prev_tilt[0]) / 2,
         (raw_tilt[1] + prev_tilt[1]) / 2,
         (raw_tilt[2] + prev_tilt[2]) / 2,
     )
-    prev_tilt = smoothed_tilt
-    return smoothed_tilt
+    prev_tilt = adjusted_tilt
+    return adjusted_tilt
