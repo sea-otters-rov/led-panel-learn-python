@@ -193,6 +193,13 @@ working *on* the project.
   placeholder. This also assumes a /24, which `network.py` already assumed —
   it builds the broadcast address by swapping the last octet for 255.
 
+- **A save costs ~5.7 s from a partner's point of view, not 4.5.** The 4.5 s
+  below is the board's own downtime; what matters to anything watching is the
+  gap from its last message to its next one. Measured 2026-09-10 on L204:
+  last message 32.71, back on the network 38.05, first message out 38.37 —
+  **5.66 s of silence**. Any timeout that is meant to survive a save has to
+  clear that, which is why `forget_after` in L204 is 8.0 and not 3.0.
+
 - **Every Ctrl+S takes a board off the network for ~4.5 s**, measured twice:
   0.9 s to the soft reboot, 0.4 s to running again, then 3.1-3.5 s to rejoin.
   The partner notices by heartbeat timeout and recovers **with no detection

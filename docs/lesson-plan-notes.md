@@ -733,10 +733,49 @@ have been read by 204 as a tilt *from board `<x>`* -- silently wrong, and
 exactly the failure the tag was introduced to prevent. `CLAUDE.md` now carries
 the registry of kinds and their layouts; check it before inventing one.
 
-**A pairing still cannot survive a save**, and the answer is now better than
-the roster's: knock the boards together again. That is honest, physical, and
-visible, where "recover the pairing from your partner" was machinery a student
-would never see.
+**Pairing is a two-state machine, and that is what makes it usable in a room.**
+Unpaired, a board shouts when knocked and listens for knocks. Paired, it is
+deaf to knocks entirely and only its partner's moves get through. Without the
+second state, six boards being fidgeted with means knocks flying about
+constantly and everyone being stolen away every few seconds. A paired board
+also stops *broadcasting* taps, which drops the room's noise floor as pairs
+form.
+
+`pair_window` is 0.3 s, not 1.0. One knock reaches both boards at the same
+instant and a message crosses the room in well under 100 ms, so the only thing
+a wide window buys is accidental pairings between people who happened to fidget
+at the same moment.
+
+**A save resumes the pairing with no knock, and the trick is that `move` is
+unicast.** A move is only ever sent straight to a partner, so one arriving
+while you are unpaired means the sender still thinks you are theirs -- which
+they can only think if you were. Trusting a move is therefore safe in a way
+trusting a knock is not: a knock is shouted at the whole room, a move is
+addressed to you.
+
+**That resume forces `forget_after` to be bigger than a save.** Measured
+2026-09-10:
+
+        32.71  B  Code stopped by auto-reload
+        38.05  B  network: board 4 ready       5.34 s off the air
+        38.37  B  paired with board 5          0.32 s later, no knock
+                  A never lost B: 0 timeouts
+
+Last message to re-paired is **5.66 s**, so `forget_after` must clear that or
+the still-running board gives up first, stops sending, and the returning board
+finds an empty room. It is 8.0, leaving ~2.3 s of margin. **3.0 would have
+made the resume impossible** -- and 3.0 is what the roster lesson used, so the
+number changed meaning when the design did.
+
+**There is no unpair gesture, and that is deliberate.** A board lets go when
+its partner goes quiet for `forget_after`. So resetting yourself does not free
+you -- your partner is still sending, and you resume with them. What frees you
+is your *partner* stopping: switching off, or both of you saving together.
+Swapping partners between two established pairs means getting all four
+unpaired at once, which is fiddly. An explicit "shake hard to unpair" was
+considered and rejected: it reintroduces exactly the shake-sensitivity that
+the two-state design was built to remove. The lesson poses it as a design
+question instead.
 
 Still unspiked: **the handoff itself** (arc item 205). That is the one remaining
 place where two boards can disagree, and it wants doing before 17 is written,

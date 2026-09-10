@@ -1,6 +1,6 @@
 """Bump your two boards together and they pair up, with nothing to type.
 
-The two previous lessonss had a line where you type your partner's id. This one
+The two previous lessons had a line where you type your partner's id. This one
 does not. Instead: simply tap your board to your partners!
 
 The idea behind it is worth more than the trick. Neither board can see the
@@ -9,8 +9,24 @@ happened to me just now, and something happened to you at almost the same
 moment. That is enough. Two events close together in time are treated as one
 event that touched both boards.
 
-It is also why the pairing does not survive a save. Your board forgets
-everything when it restarts, so after a save you need to tap them again.
+Your board is always in one of two states, and that is most of this lesson:
+
+    ON YOUR OWN   shouting when knocked, and listening for a knock -- or for
+                  somebody who still thinks you are their partner
+    PAIRED        deaf to knocks. Only your partner's moves get through
+
+The second state is what makes this work in a real room. Six boards being
+fidgeted with means knocks flying about constantly, and a board that still
+listened to them while paired would be stolen away every few seconds. Once you
+have a partner, knocks stop being interesting.
+
+Your board still forgets everything when it restarts. But it does not have to
+be knocked again, because of a detail worth noticing: a move is sent straight
+to one board, never shouted at the room. So if a move arrives while you are on
+your own, whoever sent it must still think you are their partner -- and they
+can only think that if you were. Picking the pairing back up is safe in a way
+that trusting a knock is not, because a knock is shouted at everybody and a
+move is addressed to you.
 
 Two message kinds now, which is the first time the word on the front of a
 message really earns its keep:
@@ -40,8 +56,17 @@ tap_kind = "tap"
 move_kind = "move"
 
 tap_force = 1.4  # 1.0 is sitting still; a knock on the desk is about 1.4
-pair_window = 1.0  # two knocks this close together count as the same knock
-forget_after = 3.0  # partner quiet this long and we are on our own again
+
+# One knock reaches both boards at the same instant, and a message crosses the
+# room in well under a tenth of a second. Be strict: the wider this is, the more
+# likely two people fidgeting at the same moment get paired by accident.
+pair_window = 0.3
+
+# Quiet for this long and we give up on our partner. It has to be longer than a
+# save takes, which is about five and a half seconds -- your board is off the
+# air for all of it. Any shorter and a partner who saves is dropped before they
+# can get back, and the resume below never gets a chance to happen.
+forget_after = 8.0
 
 my_color = colors.JADE
 their_color = colors.MAGENTA
@@ -86,28 +111,46 @@ while True:
     now = time.monotonic()
     tilt_x, tilt_y, tilt_z = interactions.smoothed_tilt()
 
-    # Were we just knocked? Tell the whole room, and remember when.
-    if screen.force() > tap_force:
+    # Only shout about a knock while we are on our own. A board that already
+    # has a partner keeps quiet, so it cannot be stolen and it is not adding to
+    # the noise while five other people fidget with their boards.
+    if partner_id is None and screen.force() > tap_force:
         network.send_to_everyone(f"{tap_kind} {my_id}")
         my_tap_time = now
+
+    if partner_id is not None:
+        network.send(partner_id, f"{move_kind} {my_id} {tilt_x} {tilt_y}")
+
+    # Whoever we decide to pair with this time round, if anyone.
+    new_partner = None
 
     msg = network.receive()
     while msg is not None:
         msg_parts = msg.split(" ")
 
-        if len(msg_parts) == 2 and msg_parts[0] == tap_kind:
-            # Somebody was knocked. Not necessarily our somebody -- we find
-            # that out below, by looking at when it happened.
-            their_tap_id = msg_parts[1]
-            their_tap_time = now
+        if partner_id is None:
+            # ON OUR OWN. Two ways out of here.
+            if len(msg_parts) == 2 and msg_parts[0] == tap_kind:
+                # Somebody was knocked. Whether it was OUR knock is decided
+                # below, by looking at when it happened.
+                their_tap_id = msg_parts[1]
+                their_tap_time = now
+
+            elif len(msg_parts) == 4 and msg_parts[0] == move_kind:
+                # A move is only ever sent straight to a partner, never to the
+                # whole room. So whoever sent this still believes we are theirs
+                # -- which means we were paired before we restarted. Pick the
+                # pairing back up rather than making them knock again.
+                new_partner = msg_parts[1]
 
         elif (
             len(msg_parts) == 4
             and msg_parts[0] == move_kind
             and msg_parts[1] == partner_id
         ):
-            # A tilt, and it says it is from our partner. Anyone else's is
-            # ignored -- which is the whole point of having a partner.
+            # PAIRED. Nothing but our partner's moves gets a look in -- not
+            # even a knock. That is what stops a roomful of people banging
+            # their boards about from stealing us away.
             heard_from_partner = now
             theirs.x = tilt_to_x(float(msg_parts[2]), their_size)
             theirs.y = tilt_to_y(float(msg_parts[3]), their_size)
@@ -117,31 +160,29 @@ while True:
     # Two knocks at about the same moment: that was one knock, and it touched
     # both boards. abs() throws away the sign, so it does not matter whose
     # message got there first.
-    if their_tap_id is not None and abs(my_tap_time - their_tap_time) < pair_window:
-        # A knock lasts a few times round the loop, so only say something the
-        # first time, or when we have swapped to a different partner.
-        if partner_id != their_tap_id:
-            print(f"paired with board {their_tap_id}")
+    if (
+        partner_id is None
+        and their_tap_id is not None
+        and abs(my_tap_time - their_tap_time) < pair_window
+    ):
+        new_partner = their_tap_id
+        their_tap_id = None  # used up; pairing again takes two fresh knocks
 
-        partner_id = their_tap_id
+    if new_partner is not None:
+        partner_id = new_partner
         heard_from_partner = now
         theirs.hidden = False
         sign.text = "with " + partner_id
+        print(f"paired with board {partner_id}")
 
-        # Used up. Pairing again takes two fresh knocks, or a board that
-        # rebooted would silently re-pair off the knocks from last time.
-        their_tap_id = None
-
-    # Our partner has gone quiet. They saved, or switched off, or wandered off
-    # with the board. Either way we are on our own until somebody knocks.
+    # Our partner has gone quiet for longer than a save could explain. They
+    # switched off, or wandered away, or paired with somebody else. Either way
+    # we are on our own again, and free to be knocked.
     if partner_id is not None and now - heard_from_partner > forget_after:
         print(f"lost board {partner_id}")
         partner_id = None
         theirs.hidden = True
         sign.text = "tap!"
-
-    if partner_id is not None:
-        network.send(partner_id, f"{move_kind} {my_id} {tilt_x} {tilt_y}")
 
     mine.x = tilt_to_x(tilt_x, my_size)
     mine.y = tilt_to_y(tilt_y, my_size)
@@ -149,16 +190,26 @@ while True:
     screen.draw()
 
 # Try these:
-#   - Pair up, then press Ctrl+S on your board. Watch your partner's panel: you
-#     vanish, and you do not come back on your own. Why not? What do you have to
-#     do, and does that seem right?
-#   - Set pair_window to 0.05. Try to pair. How good do your reflexes have to
-#     be? Now set it to 10.0 and get someone across the room to knock their
-#     board. Who are you paired with?
+#   - Pair up, then press Ctrl+S on your board. It restarts knowing nothing at
+#     all -- and picks your partner straight back up without being knocked.
+#     Which line does that, and how does it know it is safe to?
+#   - Now set forget_after to 3.0 and save again. This time your partner gives
+#     up on you while you are still restarting, so nobody is sending moves when
+#     you come back and you have to knock after all. A save takes about five and
+#     a half seconds off the air. Why does that number decide this one?
+#   - Pair up, then get a third person to knock their board against yours.
+#     Nothing happens at all. Take the `partner_id is None` off the tap line and
+#     try it again. Which of those two do you want in a room of six?
+#   - Set pair_window to 10.0 and get someone across the room to knock their
+#     board at roughly the same time as you. Who are you paired with? Put it
+#     back to 0.3 and try the same thing.
 #   - Three pairs in the room all knock at the same moment. Who ends up paired
 #     with whom? Try it. Is there any way your board could have known?
 #   - Set forget_after to 60. Switch your partner's board off. Your panel still
 #     says you have a partner. For how long is that a lie?
+#   - How do you break up? Work out what has to be true for your board to let go
+#     of a partner, then get two pairs to swap partners. Is it fiddly? What
+#     would you add to make it easy, and what would that cost you?
 #   - Take `and msg_parts[1] == partner_id` out of the move check. Now get a
 #     third board to send you a move. Whose shape is on your screen?
 #   - Change move_kind back to "tilt" on both boards. It still works! Now get a
@@ -171,6 +222,10 @@ while True:
 #   - Send `tap <someone else's id>` instead of your own. You are telling the
 #     room that a board you are not was knocked. What happens to the person who
 #     knocked at that moment?
+#   - Find somebody who is on their own and send them `move <your id> 0 0`,
+#     with nobody knocking anything. They pair with you. Picking a pairing back
+#     up trusts a move because only a real partner would send one -- which is
+#     true right up until somebody sends one on purpose.
 #   - Once your partner has paired with you, send them
 #     `move <a third board's id> 0.9 0.9`. They ignore it. Now send them
 #     `move <your own id> 0.9 0.9` twenty times a second while your board sits
