@@ -348,6 +348,30 @@ restarts. Say so when adding one, instead of letting the next prompt reveal it.
   Use `from . import helper` for a sibling module and a leading-slash absolute
   path for data files. Deriving the path from `__file__` also works and survives
   a folder rename, but it is too much machinery to put in front of a beginner.
+- **A message kind names exactly one shape, course-wide, forever.** The word
+  on the front of a message is only worth having if it is unique: the moment
+  two lessons use one word for two different layouts, the word stops carrying
+  information and the receiver is back to guessing from the length. Never
+  reuse a kind for a new shape — give the new shape a new name.
+
+  The kinds in use, and their exact layouts:
+
+        tilt <x> <y>            L203   anonymous, two numbers
+        tap <id>                L204   I have just been knocked
+        move <id> <x> <y>       L204   signed: who, and where they point
+
+  204's signed tilt is called `move` for exactly this reason — 203 had already
+  spent the word `tilt` on a different layout. Caught 2026-09-09, after both
+  lessons shipped. **It was safe only by accident**: every check is
+  `len(parts) == N and parts[0] == kind`, so the differing lengths happened to
+  reject each other. A later `tilt <x> <y> <z>` would have been read by 204 as
+  a tilt *from board `<x>`* — silently wrong, which is the exact failure the
+  tag was introduced to prevent. Add a row above before inventing a kind.
+
+  `spike_two_boards` also uses `here`, `ping`, `pong`, `ball` and `echo`. It is
+  a maintainer throwaway and never runs beside a lesson, but **205 will want
+  `ball`** — check this list first.
+
 - **American spellings, and no SCREAMING_CAPS in lesson code.** `color`, not
   `colour`; `center`, not `centre`. And a value a lesson defines and a student
   might edit stays `snake_case` — `tap_force`, `message_kind` — because naming

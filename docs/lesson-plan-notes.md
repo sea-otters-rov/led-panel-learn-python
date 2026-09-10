@@ -720,10 +720,18 @@ same condition whichever order the messages arrived in.
 close forever, so a board that timed out its partner would silently re-pair off
 the knocks from several minutes ago instead of waiting for a fresh one.
 
-**The tilt message now carries its sender: `tilt <id> <x> <y>`.** Without it,
+**The signed tilt carries its sender: `move <id> <x> <y>`.** Without the id,
 pairing is decorative -- any board could drive your shape, since a receiver
 never learns who sent a datagram. This is also the first lesson where the
 message kind on the front does real work, because there are finally two kinds.
+
+**It is `move` and not `tilt` because 203 already spent that word** on a
+three-part, unsigned message. Caught after both lessons had shipped. It was
+safe only by accident: every check is `len(parts) == N and parts[0] == kind`,
+so the differing lengths rejected each other. A later `tilt <x> <y> <z>` would
+have been read by 204 as a tilt *from board `<x>`* -- silently wrong, and
+exactly the failure the tag was introduced to prevent. `CLAUDE.md` now carries
+the registry of kinds and their layouts; check it before inventing one.
 
 **A pairing still cannot survive a save**, and the answer is now better than
 the roster's: knock the boards together again. That is honest, physical, and

@@ -1,8 +1,7 @@
 """Bump your two boards together and they pair up, with nothing to type.
 
-Every lesson so far has had a line where you type your partner's id. This one
-does not. Instead: hold your board against your partner's, give them a knock,
-and they work it out themselves.
+The two previous lessonss had a line where you type your partner's id. This one
+does not. Instead: simply tap your board to your partners!
 
 The idea behind it is worth more than the trick. Neither board can see the
 room, and neither can tell who sent a message. All they have is this: something
@@ -11,17 +10,23 @@ moment. That is enough. Two events close together in time are treated as one
 event that touched both boards.
 
 It is also why the pairing does not survive a save. Your board forgets
-everything when it restarts, so it comes back knowing nobody -- and the fix is
-not clever code, it is knocking the boards together again.
+everything when it restarts, so after a save you need to tap them again.
 
 Two message kinds now, which is the first time the word on the front of a
 message really earns its keep:
 
     tap 4              I have just been knocked
-    tilt 4 0.12 -0.44  this is board 4, tilted like this
+    move 4 0.12 -0.44  this is board 4, and this is where it is pointing
 
-Notice the tilt message says who it is from. It has to. A board cannot tell who
+Notice the move message says who it is from. It has to. A board cannot tell who
 sent it anything, so if the message does not say, nobody knows.
+
+And notice it is called `move`, not `tilt`, even though it is carrying a tilt.
+Lesson 203 already used the word `tilt` for a message with only two numbers in
+it and nobody's name on the front. A kind has to mean exactly one thing: the
+moment two different messages share a word, the word stops telling you anything
+and you are back to guessing from the length. So each new shape gets a new
+name, and old names are never reused for something else.
 """
 
 import time
@@ -32,7 +37,7 @@ import network
 import screen
 
 tap_kind = "tap"
-tilt_kind = "tilt"
+move_kind = "move"
 
 tap_force = 1.4  # 1.0 is sitting still; a knock on the desk is about 1.4
 pair_window = 1.0  # two knocks this close together count as the same knock
@@ -98,7 +103,7 @@ while True:
 
         elif (
             len(msg_parts) == 4
-            and msg_parts[0] == tilt_kind
+            and msg_parts[0] == move_kind
             and msg_parts[1] == partner_id
         ):
             # A tilt, and it says it is from our partner. Anyone else's is
@@ -136,7 +141,7 @@ while True:
         sign.text = "tap!"
 
     if partner_id is not None:
-        network.send(partner_id, f"{tilt_kind} {my_id} {tilt_x} {tilt_y}")
+        network.send(partner_id, f"{move_kind} {my_id} {tilt_x} {tilt_y}")
 
     mine.x = tilt_to_x(tilt_x, my_size)
     mine.y = tilt_to_y(tilt_y, my_size)
@@ -154,8 +159,12 @@ while True:
 #     with whom? Try it. Is there any way your board could have known?
 #   - Set forget_after to 60. Switch your partner's board off. Your panel still
 #     says you have a partner. For how long is that a lie?
-#   - Take `and msg_parts[1] == partner_id` out of the tilt check. Now get a
-#     third board to send you a tilt. Whose shape is on your screen?
+#   - Take `and msg_parts[1] == partner_id` out of the move check. Now get a
+#     third board to send you a move. Whose shape is on your screen?
+#   - Change move_kind back to "tilt" on both boards. It still works! Now get a
+#     third board running lesson 203 to send you one of ITS tilt messages. Why
+#     does that one still get ignored, and what would have to be true about the
+#     numbers for it to sneak through?
 #
 # And the mischief:
 #
@@ -163,7 +172,7 @@ while True:
 #     room that a board you are not was knocked. What happens to the person who
 #     knocked at that moment?
 #   - Once your partner has paired with you, send them
-#     `tilt <a third board's id> 0.9 0.9`. They ignore it. Now send them
-#     `tilt <your own id> 0.9 0.9` twenty times a second while your board sits
+#     `move <a third board's id> 0.9 0.9`. They ignore it. Now send them
+#     `move <your own id> 0.9 0.9` twenty times a second while your board sits
 #     still. What does their screen show, and what would it take for them to
 #     notice you were lying?
