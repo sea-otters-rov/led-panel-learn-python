@@ -830,7 +830,7 @@ Mirroring was right as designed: `x_new = WIDTH - size - x`, `vx_new = -vx`,
 each bottom edge. Every board sends exactly one message every frame, and the
 message kind *is* its state:
 
-        have <id>                       I have the ball
+        have <id> <x> <y> <tilt x>      I have the ball: where, and my tilt
         give <id> <x> <y> <vx> <vy>     yours now -- repeated until they say have
         wait <id>                       I am waiting
 

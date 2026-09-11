@@ -413,7 +413,9 @@ restarts. Say so when adding one, instead of letting the next prompt reveal it.
         tap <id>                L204   I have just been knocked (and
                                        interactions.tap_to_pair() from L205)
         move <id> <x> <y>       L204   signed: who, and where they point
-        have <id>               L205   I have the ball
+        have <id> <x> <y> <tilt x>
+                                L205   I have the ball: where it is on MY
+                                       panel, and my paddle's tilt
         give <id> <x> <y> <vx> <vy>
                                 L205   the ball is yours: position and speed
                                        already converted to YOUR panel

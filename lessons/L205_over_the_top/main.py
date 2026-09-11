@@ -9,7 +9,8 @@ of it -- moving it, bouncing it, drawing it. The new idea is how it gets from on
 board to the other without ever being lost or ending up on both. Every board
 says one of three things, every single time round the loop:
 
-    have <my id>                             I have the ball
+    have <my id> <x> <y> <tilt x>            I have the ball: where it is on
+                                             my panel, and how I am tilting
     give <my id> <x> <y> <speed x> <speed y> the ball is yours now
     wait <my id>                             I am waiting for the ball
 
@@ -25,7 +26,6 @@ side -- and silence is exactly how a board decides its partner has gone.
 """
 
 import random
-import time
 
 import colors
 import interactions
@@ -71,8 +71,10 @@ speed_x = 0.0
 speed_y = 0.0
 give_message = ""  # what we keep sending while we hand the ball over
 
-last_saw_ball = time.monotonic()  # when anybody last had the ball
-heard_from_partner = time.monotonic()
+# Two clocks, each with its own name: how long since anybody had the ball, and
+# how long since our partner said anything at all.
+screen.timer_reset("ball")
+screen.timer_reset("partner")
 
 
 def serve():
@@ -119,8 +121,6 @@ def take(msg):
 
 
 while True:
-    now = time.monotonic()
-
     # Steer the paddle, exactly as in lesson 109.
     tilt_x, tilt_y, tilt_z = interactions.smoothed_tilt()
     paddle.x = int(tilt_x * screen_center_x) + screen_center_x - paddle_width // 2
@@ -132,7 +132,7 @@ while True:
     # --- listen -------------------------------------------------------------
     msg = interactions.get_newest_message([have_kind, give_kind, wait_kind])
     if msg is not None and msg[1] == partner_id:
-        heard_from_partner = now
+        screen.timer_reset("partner")
         kind = msg[0]
 
         if kind == give_kind and len(msg) == 6 and state != have_kind:
@@ -140,10 +140,10 @@ while True:
             # (If we already have it, this is them repeating a "give" we have
             # already taken -- they just have not heard our "have" yet.)
             take(msg)
-            last_saw_ball = now
+            screen.timer_reset("ball")
 
-        elif kind == have_kind and len(msg) == 2:
-            last_saw_ball = now
+        elif kind == have_kind and len(msg) == 5:
+            screen.timer_reset("ball")
             if state == give_kind:
                 # They have it. That is the answer we were waiting for, so we
                 # can stop saying "give".
@@ -158,7 +158,7 @@ while True:
 
     # --- move the ball, if it is ours ---------------------------------------
     if state == have_kind:
-        last_saw_ball = now
+        screen.timer_reset("ball")
         ball_x = ball_x + speed_x
         ball_y = ball_y + speed_y
 
@@ -200,7 +200,7 @@ while True:
 
     # --- say what we are doing, every single time ---------------------------
     if state == have_kind:
-        network.send(partner_id, f"{have_kind} {my_id}")
+        network.send(partner_id, f"{have_kind} {my_id} {ball_x} {ball_y} {tilt_x}")
     elif state == give_kind:
         network.send(partner_id, give_message)
     else:
@@ -211,22 +211,22 @@ while True:
     # through, or someone saved in the middle of a rally and took it with them.
     # Both boards follow the same rule, so they never both serve: the one with
     # the lower id does.
-    if state != have_kind and now - last_saw_ball > stall_after:
+    if state != have_kind and screen.timer_elapsed("ball") > stall_after:
         if state == give_kind:
             print("they never took it")
         state = wait_kind
         if int(my_id) < int(partner_id):
             serve()
-        last_saw_ball = now
+        screen.timer_reset("ball")
 
     # Our partner has gone quiet for longer than a save could explain.
-    if now - heard_from_partner > forget_after:
+    if screen.timer_elapsed("partner") > forget_after:
         print(f"lost board {partner_id}")
         state = wait_kind
         ball.hidden = True
         partner_id = interactions.tap_to_pair([have_kind, give_kind, wait_kind])
-        heard_from_partner = time.monotonic()
-        last_saw_ball = time.monotonic()
+        screen.timer_reset("partner")
+        screen.timer_reset("ball")
 
     screen.draw()
 

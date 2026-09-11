@@ -1,5 +1,3 @@
-import time
-
 import colors
 import network
 import screen
@@ -88,16 +86,15 @@ def tap_to_pair(resume_kinds: list[str], tap_force=1.4, pair_window=0.3) -> str:
     """
     sign = screen.text("Tap to pair", colors.AMBER, 1, 3, font=screen.Fonts.SMALL)
     screen.draw()
-    my_tap_time = None
+    tapped = False
 
     while True:
-        now = time.monotonic()
-
         if screen.force() > tap_force:
             network.send_to_everyone(f"tap {network.my_id}")
-            my_tap_time = now
+            screen.timer_reset("tap")
+            tapped = True
             sign.text = "tapped"
-        elif my_tap_time is not None and now - my_tap_time > 1:
+        elif screen.timer_elapsed("tap") > 1:
             sign.text = "Tap to pair"
 
         for msg_text in network.receive_all():
@@ -108,8 +105,8 @@ def tap_to_pair(resume_kinds: list[str], tap_force=1.4, pair_window=0.3) -> str:
             tapped_together = (
                 msg_parts[0] == "tap"
                 and len(msg_parts) == 2
-                and my_tap_time is not None
-                and now - my_tap_time < pair_window
+                and tapped
+                and screen.timer_elapsed("tap") < pair_window
             )
             if tapped_together or msg_parts[0] in resume_kinds:
                 partner_id = msg_parts[1]

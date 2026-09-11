@@ -33,7 +33,10 @@ _group = displayio.Group()
 _display.root_group = _group
 
 # Used for timer_elapsed and timer_reset
-_timer = time.monotonic()
+# Every clock starts from when screen was first imported. The one with no name
+# is the timer most lessons use; named ones let a lesson keep several at once.
+_timers = {"": time.monotonic()}
+_started = _timers[""]
 
 
 # Filled in the first time something asks for a tilt reading, so lessons that
@@ -267,15 +270,22 @@ def hold():
         time.sleep(1)
 
 
-def timer_reset() -> None:
-    """Start timer_elapsed over from zero"""
-    global _timer
-    _timer = time.monotonic()
+def timer_reset(name: str = "") -> None:
+    """Start timer_elapsed over from zero.
+
+    Leave the name out for the one timer most lessons need. Give it a name --
+    timer_reset("ball") -- when you need several clocks running at once; each
+    name is a separate timer.
+    """
+    _timers[name] = time.monotonic()
 
 
-def timer_elapsed() -> float:
-    """Seconds since last call to timer_reset"""
-    return time.monotonic() - _timer
+def timer_elapsed(name: str = "") -> float:
+    """Seconds since timer_reset was last called with this name.
+
+    A name that has never been reset counts from when the board started up.
+    """
+    return time.monotonic() - _timers.get(name, _started)
 
 
 def _readings() -> tuple[float, float, float]:
