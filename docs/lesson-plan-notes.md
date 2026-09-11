@@ -546,7 +546,7 @@ boards disagree. That is the honest content of lesson 207.
 | 202 | Your tilt moves a block on *their* screen | `float()` on a received string — the reverse of L110's `str()`. **Written** |
 | 203 | Several numbers in one message, and checking one before trusting it | `.split()`, which returns a list they know from L107. **Written** |
 | 204 | Knock two boards together and they pair up | Two events close in time are one event. No typed id, no dict. **Written** |
-| 205 | **The ball crosses between panels** | Ownership and handoff. The hard one |
+| 205 | **The ball crosses between panels** | Ownership and handoff: say "give" until they say "have". **Written** |
 | 206 | Both panels agree on the score | One side is the authority; the other is told |
 | 207 | The serve, and the finished game | Protocol, and what to do when two boards disagree |
 
@@ -821,6 +821,47 @@ What that decides for 205:
 
 Mirroring was right as designed: `x_new = WIDTH - size - x`, `vx_new = -vx`,
 `vy_new = -vy`, and `y_new = -y` carries the overshoot across the seam.
+
+### Lesson 205, written and verified 2026-09-10
+
+`L205_over_the_top`. Two boards flat, tops touching, a tilt-steered paddle on
+each bottom edge. Every board sends exactly one message every frame, and the
+message kind *is* its state:
+
+        have <id>                       I have the ball
+        give <id> <x> <y> <vx> <vy>     yours now -- repeated until they say have
+        wait <id>                       I am waiting
+
+The acknowledgement is the partner's ordinary `have`, and the watcher's `wait`
+is what keeps its radio awake. One rule covers every way the ball can go
+missing -- a miss, a lost `give`, a partner who saves mid-rally, and the very
+start: nobody has had the ball for 2 s, so the lower id serves.
+
+Pairing moved into `interactions.tap_to_pair(resume_kinds)`, the way
+`join_wifi()` packed up 201's connect code, and `get_newest_message()` went
+with it. 204 keeps its own inline copies, because 204 is where they are taught.
+
+Verified on both boards, with gravity standing in for a knock:
+
+        paddle 14 wide, boards still   27 serves, 27 gives, 27 taken, 27 acked,
+                                       27 misses (the ball never came back)
+        paddle full width              60 handoffs, 30 each way, all taken and
+                                       acked; 1 serve; 0 lost, 0 doubled
+
+`give` to acknowledged was 20-45 ms, worst 132.
+
+Two things found writing it:
+
+- The paddle test from 109 lets a ball that has *already slipped past* the
+  paddle drift sideways into it and be caught from behind. 205 adds one
+  condition -- the ball was above the paddle a frame ago.
+- **Validation is proposed for 206, not 205.** `CLAUDE.md` planned the safe
+  parse and range check for 205, since a bounds check has a gameplay reason
+  there. But 205 is already the hardest lesson, and 206 -- "one side is the
+  authority, the other is told" -- is literally the question of whether to
+  believe what you are told, with the score as the obvious thing to cheat at.
+  205 still ignores malformed messages by kind and length; it trusts the
+  numbers inside a `give`, and its last try-these asks whether it should.
 
 **A pairing cannot be remembered across a reboot.** Tested on hardware
 2026-09-08: board-side code cannot write the board's filesystem at all

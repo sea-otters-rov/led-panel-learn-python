@@ -401,8 +401,18 @@ restarts. Say so when adding one, instead of letting the next prompt reveal it.
   The kinds in use, and their exact layouts:
 
         tilt <x> <y>            L203   anonymous, two numbers
-        tap <id>                L204   I have just been knocked
+        tap <id>                L204   I have just been knocked (and
+                                       interactions.tap_to_pair() from L205)
         move <id> <x> <y>       L204   signed: who, and where they point
+        have <id>               L205   I have the ball
+        give <id> <x> <y> <vx> <vy>
+                                L205   the ball is yours: position and speed
+                                       already converted to YOUR panel
+        wait <id>               L205   I am waiting for the ball
+
+  Every kind from L204 on puts the sender's id second. `tap_to_pair()` relies
+  on that: an unpaired board resumes with whoever sends it any of the lesson's
+  unicast kinds, and it reads the partner's id from the second word.
 
   204's signed tilt is called `move` for exactly this reason — 203 had already
   spent the word `tilt` on a different layout. Caught 2026-09-09, after both
@@ -870,8 +880,11 @@ budget. 203 is `L203_two_numbers`: `tilt <x> <y>` in one message, `.split()` to
 take it apart, and a tag check so a message from a board still on 201 is
 ignored instead of stopping the board. 204 is `L204_tap_to_pair`: knock two
 boards together and they pair, because both were knocked at the same moment —
-no typed id, and presence kept as one partner plus one timestamp. 205–207 are
-not written, and the ball handoff (205) is the one piece still unspiked.
+no typed id, and presence kept as one partner plus one timestamp. 205 is
+`L205_over_the_top`: the ball crosses between panels, handed over with `give`
+repeated until the partner says `have` — 60 handoffs verified both ways, none
+lost. 206 and 207 are not written. Validation (safe parse plus range check),
+planned for 205 below, is proposed for 206 instead — see the notes.
 
 **The roster lesson was designed, written, verified, and then cut** on
 2026-09-09. Nothing else in the arc needs a dict, knocking beats a roster for
