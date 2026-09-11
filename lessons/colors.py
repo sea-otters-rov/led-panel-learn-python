@@ -58,6 +58,9 @@ def dim(color, level):
     apart, shrinks each of them, and packs them back together. Keep dimming and
     it eventually lands exactly on BLACK.
     """
+    # Make sure level is between 0..1
+    level = max(0, min(1.0, level))
+
     red = (color >> 16) & 0xFF
     green = (color >> 8) & 0xFF
     blue = color & 0xFF

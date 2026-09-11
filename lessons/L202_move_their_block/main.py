@@ -78,10 +78,10 @@ block_center_x = theirs.width // 2
 # just use that and ignore old messages.
 def get_newest_message():
     newest_msg = None
-    for newest_msg in network.receive_all():
-        pass  # Do nothing, just keep overwriting our variable with messages
+    for msg in network.receive_all():
+        newest_msg = msg  # Just keep overwriting our variable with messages
 
-    # No more waiting messages, return what we got. Note if we didn't get
+    # No more waiting messages, return what we got. If we didn't get
     # anything, newest_msg will still be None
     return newest_msg
 

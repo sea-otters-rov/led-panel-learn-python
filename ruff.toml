@@ -15,11 +15,9 @@ line-length = 88
 [lint]
 # SELECT EXPLICITLY. Ruff's default rule set is not stable between releases:
 # 0.16 turns on 413 rules where older versions turned on about 30, so a config
-# with no `select` quietly changes meaning when ruff updates. That is how this
-# file grew an `ignore` list -- UP031, I001 and PLR1730 were never chosen, they
-# arrived with an upgrade. Pin the set and the ignores are not needed.
+# with no `select` quietly changes meaning when ruff updates.
 #
-# F is pyflakes: real mistakes -- an undefined name, an unused import, an
+# F is pyflakes: real mistakes -- an undefined name, an
 # f-string with no placeholders. E4/E7/E9 are the pycodestyle errors that are
 # not matters of taste. That is the whole of what we want.
 #
@@ -30,16 +28,4 @@ line-length = 88
 # comments in network.py are harmless under this set: they document intent, and
 # would matter again if anyone widened it.
 select = ["E4", "E7", "E9", "F"]
-
-[lint.per-file-ignores]
-# lessons\code.py imports a lesson for its side effect -- the import IS the
-# program. F401 "imported but unused" is wrong there, and it is worse than
-# noise: `ruff --fix`, or the extension's fix-on-save, would delete the only
-# functional line in the launcher and leave the board running nothing.
-"lessons/code.py" = ["F401"]
-
-# L107 imports time for a commented-out `time.sleep(0.02)` that the lesson asks
-# the student to uncomment. Ruff is right that it is unused; removing it would
-# break the exercise. Ignored here rather than with a `# noqa` in the file,
-# because a student should never have to read a lint pragma in a lesson.
-"lessons/L107_many_things/main.py" = ["F401"]
+ignore = ["F401"]

@@ -7,11 +7,20 @@ def join_wifi(show_id: bool = True) -> str:
     """
     Wifi connection, message, and optional ID label at the top-right
     """
-    wifi_connecting = screen.text("Connecting", colors.AMBER, 2, 16)
+
+    import os
+
+    wifi_connecting = (
+        screen.text("Connecting", colors.AMBER, 2, 16),
+        screen.text(
+            os.getenv("WIFI_SSID") or "Err", colors.GOLD, 2, 28, screen.Fonts.SMALL
+        ),
+    )
     screen.draw()
 
     my_id = network.start()
-    screen.delete_shape(wifi_connecting)
+    for line in wifi_connecting:
+        screen.delete_shape(line)
 
     if show_id:
         # Your own id in the corner.

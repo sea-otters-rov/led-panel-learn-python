@@ -763,9 +763,16 @@ addressed to you.
 
 Last message to re-paired is **5.66 s**, so `forget_after` must clear that or
 the still-running board gives up first, stops sending, and the returning board
-finds an empty room. It is 8.0, leaving ~2.3 s of margin. **3.0 would have
-made the resume impossible** -- and 3.0 is what the roster lesson used, so the
-number changed meaning when the design did.
+finds an empty room. **3.0 would have made the resume impossible** -- and 3.0
+is what the roster lesson used, so the number changed meaning when the design
+did.
+
+**And 5.66 s turned out to be the optimistic end.** Re-measured the same day on
+a second network (`10.123.24.x`): **9.78 s**, almost all of it a slower
+`connect_AP` (8.1 s to join, against ~3.7 s). The 8.0 first chosen from the
+5.66 s figure would have dropped a partner partway through that save. It is
+15.0 now, and Matt's comment in the lesson says "up to 10 seconds", which is
+the number to design against. Measure on the classroom router.
 
 **There is no unpair gesture, and that is deliberate.** A board lets go when
 its partner goes quiet for `forget_after`. So resetting yourself does not free

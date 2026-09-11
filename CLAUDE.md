@@ -193,12 +193,20 @@ working *on* the project.
   placeholder. This also assumes a /24, which `network.py` already assumed —
   it builds the broadcast address by swapping the last octet for 255.
 
-- **A save costs ~5.7 s from a partner's point of view, not 4.5.** The 4.5 s
-  below is the board's own downtime; what matters to anything watching is the
-  gap from its last message to its next one. Measured 2026-09-10 on L204:
-  last message 32.71, back on the network 38.05, first message out 38.37 —
-  **5.66 s of silence**. Any timeout that is meant to survive a save has to
-  clear that, which is why `forget_after` in L204 is 8.0 and not 3.0.
+- **A save costs 5.7–9.8 s of silence from a partner's point of view, and
+  the network decides which.** The 4.5 s below is the board's own downtime;
+  what matters to anything watching is the gap from its last message to its
+  next one. Both measured on L204, 2026-09-10:
+
+        home router, 192.168.1.x     last msg 32.71 -> re-paired 38.37   5.66 s
+        10.123.24.x                  last msg 32.01 -> re-paired 41.78   9.78 s
+
+  Nearly all the difference is `connect_AP`: 8.1 s from soft reboot to joined
+  on the second network, against ~3.7 s on the first. **Design timeouts
+  against 10 s, not 5.7.** L204's `forget_after` is 15.0 for this reason; an
+  earlier 8.0, sized from the first measurement alone, would have dropped a
+  partner partway through a save on the second network. Measure on the
+  classroom router before trusting either number.
 
 - **Every Ctrl+S takes a board off the network for ~4.5 s**, measured twice:
   0.9 s to the soft reboot, 0.4 s to running again, then 3.1-3.5 s to rejoin.
@@ -457,6 +465,18 @@ restarts. Say so when adding one, instead of letting the next prompt reveal it.
   and `adafruit_lis3dh`, so `install -r device-requirements.txt` reinstalls every
   one. After any circup run, delete them again and re-sync — or the 57.6 KB
   quietly returns.
+
+  **So does a board's own past, and a normal sync will never notice.** `sync`
+  only copies; only `-Clean` deletes. Found 2026-09-10: board B arrived from
+  another machine still carrying the stock demo's `lib/` — all seven frozen
+  libraries, including **`adafruit_esp32spi` 11.1.4**, a build this repo has
+  never contained — plus the old flat `L01`–`L13` lessons, 128 KB in all. It
+  ran a whole session of Part 2 networking tests on that shadow copy while
+  board A ran the frozen one, and everything passed, so nothing looked wrong.
+  **The tell is free space**: two boards on the same image should report the
+  same KB free after a sync, and here they differed by 93 KB. When a board is
+  new to this machine, or free space disagrees, run `sync.ps1 -Board X -Clean`
+  once before trusting anything it measures.
 
 ## The save path is performance-sensitive
 

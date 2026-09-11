@@ -34,7 +34,7 @@ import interactions
 # your partner's panel -- ask them, and type it here.
 ##############################################
 
-partner_id = 4
+partner_id = 1
 
 my_color = colors.JADE
 my_size = 2
@@ -78,14 +78,19 @@ def tilt_to_message(x, y):
     return f"{message_kind} {x} {y}"
 
 
-def get_newest_message():
-    # Exactly as in lesson 202: take everything waiting and keep the last one.
+def get_newest_message(kind):
+    # Similar to lesson 202, but only look at messages of the kind we care about
     newest_msg = None
-    for newest_msg in network.receive_all():
-        pass  # Do nothing, just keep overwriting our variable with messages
+    for msg_text in network.receive_all():
+        # First, chop the message into its parts by splitting it by space
+        msg_parts = msg_text.split(" ")
 
-    # No more waiting messages, return what we got. Note if we didn't get
-    # anything, newest_msg will still be None
+        # See if the first part is a message we care about
+        if msg_parts[0] == kind:
+            newest_msg = msg_parts  # Just keep overwriting our variable with messages
+
+    # No more waiting messages, return what we got. If we didn't get
+    # anything that matched, newest_msg will still be None
     return newest_msg
 
 
@@ -96,20 +101,21 @@ while True:
     network.send(partner_id, msg_to_send)
     print(f"Sent: {msg_to_send}")
 
-    msg = get_newest_message()
+    msg = get_newest_message(message_kind)
     if msg is not None:
-        print(f"Received: {msg}")
-        # Chop the message into its parts by splitting it by space
-        msg_parts = msg.split(" ")
+        # We got a message of the right kind, but lets also make sure it has the
+        #  right number of parts.
 
-        # And now CHECK it before trusting it.
-        #
-        # It needs to start with the right `kind` and have the right length
-        # Anything else is ignored. A "hello!" from someone still on lesson 201 is
-        # the wrong `kind` and wrong length. Neither can crash you now!
-        if len(msg_parts) == 3 and msg_parts[0] == message_kind:
-            theirs.x = tilt_to_x(float(msg_parts[1]), their_size)
-            theirs.y = tilt_to_y(float(msg_parts[2]), their_size)
+        if len(msg) == 3:
+            # The length matches too, let's assume the other parts are proper
+            # numbers. Soon we'll learn how to check that assumption too!
+            their_tilt_x = float(msg[1])
+            their_tilt_y = float(msg[2])
+
+            theirs.x = tilt_to_x(their_tilt_x, their_size)
+            theirs.y = tilt_to_y(their_tilt_y, their_size)
+        else:
+            print(f"Received invalid message: {msg}")
 
     mine.x = tilt_to_x(tilt_x, my_size)
     mine.y = tilt_to_y(tilt_y, my_size)
