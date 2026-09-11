@@ -26,6 +26,11 @@ import adafruit_esp32spi.adafruit_esp32spi as esp32spi
 
 PORT = 5007  # every board listens here
 
+# nina-fw's "set power mode" command. adafruit_esp32spi does not wrap it, so
+# start() sends it by number. A 0 means WIFI_PS_NONE: the radio listens all
+# the time. See start() for why that matters.
+_SET_POWER_MODE = 0x17
+
 my_id = ""  # filled in by start(), e.g. "11". What you call this board
 my_address = ""  # filled in by start(), e.g. "192.168.1.11"
 
@@ -67,6 +72,16 @@ def start(tries: int = 8) -> str:
 
     if not _esp.is_connected:
         raise RuntimeError("network: could not join the wifi -- check settings.toml")
+
+    # Keep the radio listening. nina-fw starts the ESP32 in WIFI_PS_MIN_MODEM,
+    # which switches the receiver off between the access point's beacons to
+    # save power -- and the access point drops much of what it was holding for
+    # a dozing board. A board that was only listening missed most of what was
+    # sent to it, for seconds at a time. Nobody here runs on a battery, so the
+    # saving is worth nothing and the cost is lost messages.
+    reply = _esp._send_command_get_response(_SET_POWER_MODE, ((0,),))
+    if reply[0][0] != 1:
+        print("network: the radio would not turn power saving off")
 
     my_address = _esp.pretty_ip(_esp.ip_address)
 

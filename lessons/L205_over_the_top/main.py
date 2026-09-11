@@ -19,8 +19,9 @@ missing, and if you said "give" once and moved on, every lost message would be
 a ball that nobody has, frozen in the gap between two panels.
 
 Notice that even the board waiting for the ball says something every time. That
-is not politeness. A board that sends nothing does not hear properly either:
-its wifi dozes off, and it misses most of what is sent to it.
+is how the other board knows it is still there. Without it, the board with the
+ball would hear nothing from its partner for as long as the ball stayed on its
+side -- and silence is exactly how a board decides its partner has gone.
 """
 
 import random
@@ -235,8 +236,8 @@ while True:
 #     over the top and simply never arrives. How often? (About as often as a
 #     message gets lost -- which is not often, but a game lasts a long time.)
 #   - Stop sending "wait" -- delete that send, so a waiting board says nothing.
-#     Handovers start taking ages, and sometimes the ball vanishes altogether.
-#     Nothing about the messages changed. What did?
+#     Keep a long rally going on one side. What happens after forget_after
+#     seconds, even though your partner is sitting right there?
 #   - Change the mirror to screen.WIDTH - 1 - ball_x. Hit the ball straight up
 #     near one edge and watch where it comes in on the other panel.
 #   - Set stall_after to 0.1. What goes wrong, and why does it depend on how

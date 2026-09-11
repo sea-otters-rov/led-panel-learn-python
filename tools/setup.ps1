@@ -12,7 +12,13 @@
          plain-Python Adafruit library sources that give Pylance something to read
       4. points the `board` stubs at the MatrixPortal M4 pinout
       5. seeds lessons\settings.toml from the example
-      6. downloads the board libraries into lessons\lib via circup
+
+    It does NOT run circup. lessons\lib is committed, so a fresh clone already
+    has exactly the board libraries the lessons need. circup resolves
+    adafruit_matrixportal's whole dependency tree, which puts back seven
+    libraries the firmware already has built in -- and a copy in lib\ is loaded
+    instead of the built-in one. Adding a library is a maintainer job; see
+    MAINTAINING.md.
 
 .PARAMETER Provision
     Also push lessons\ to an attached board with -Clean, wiping the factory demo.
@@ -124,17 +130,9 @@ if (Test-Path $toml) {
     Ok 'copied from settings.toml.example -- it is gitignored, put secrets there'
 }
 
-# --- 6. board libraries -------------------------------------------------------
-Step 6 'Fetching board libraries into lessons\lib'
-$circup = Join-Path $venv 'Scripts\circup.exe'
-& $circup --path (Join-Path $repo 'lessons') --board-id $BoardId --cpy-version $CpyVersion `
-          install -r (Join-Path $repo 'device-requirements.txt')
-if ($LASTEXITCODE -ne 0) { Warn 'circup reported a problem -- check the output above' }
-Ok 'lessons\lib populated'
-
-# --- 7. optional: firmware ----------------------------------------------------
+# --- 6. optional: firmware ----------------------------------------------------
 if ($Flash) {
-    Step 7 'Flashing CircuitPython firmware'
+    Step 6 'Flashing CircuitPython firmware'
     # The UF2 bootloader mounts as its own drive. Identify it by INFO_UF2.TXT
     # rather than by label, so this works across board revisions.
     $boot = Get-Volume -ErrorAction SilentlyContinue |
@@ -151,9 +149,9 @@ if ($Flash) {
     }
 }
 
-# --- 8. optional: provision the attached board --------------------------------
+# --- 7. optional: provision the attached board --------------------------------
 if ($Provision) {
-    Step 8 'Provisioning the attached board'
+    Step 7 'Provisioning the attached board'
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'tools\sync.ps1') -Clean
 }
 

@@ -804,11 +804,13 @@ What that decides for 205:
   of 32 here -- and a lost handoff is the silent, fatal case: nobody owns the
   ball and it just stops. The acknowledgement costs nothing extra, because it
   is the new owner's ordinary every-frame message.
-- **Every board sends every frame, including the one that is only watching.**
-  This is the surprise. A silent watcher missed most of what was sent to it,
-  for seconds at a time; the same run with the watcher sending a small message
-  each frame lost nothing. Almost certainly WiFi power saving, and there is no
-  switch for it in `adafruit_esp32spi`. See `CLAUDE.md`.
+- **A board that only listens needs WiFi power saving turned off.** This was
+  the surprise. A silent watcher missed most of what was sent to it, for
+  seconds at a time. The first workaround was to make every board send every
+  frame; the real cause turned out to be nina-fw's default power-save mode,
+  and `network.start()` now switches it off with nina-fw command `0x17`, after
+  which a silent watcher lost nothing. See `CLAUDE.md` for the four-way
+  comparison that separated it from the other suspect, SPI polling.
 - **No sequence number.** It was built into the spike to catch stale messages
   -- an old handoff, or an old "I own it" posing as an acknowledgement -- and
   across 74 handoffs with a talking watcher it caught none. It only fired in
@@ -833,7 +835,8 @@ message kind *is* its state:
         wait <id>                       I am waiting
 
 The acknowledgement is the partner's ordinary `have`, and the watcher's `wait`
-is what keeps its radio awake. One rule covers every way the ball can go
+is how the board with the ball knows its partner is still there -- without it,
+a long rally on one side would look exactly like a partner who had left. One rule covers every way the ball can go
 missing -- a miss, a lost `give`, a partner who saves mid-rally, and the very
 start: nobody has had the ball for 2 s, so the lower id serves.
 

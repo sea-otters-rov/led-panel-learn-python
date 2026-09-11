@@ -49,7 +49,21 @@ report_every = 15.0
 # watching board is silent and the owner's messages are the only traffic. With
 # it True the watcher sends a small "here" every frame, which the owner ignores.
 # If the watcher's radio dozes while it is not transmitting, True fixes it.
-watcher_talks = True
+watcher_talks = False
+
+# The other explanation for a silent watcher going deaf: it is not the radio
+# dozing, it is the loop. A board that sends nothing runs its loop in ~3 ms and
+# hammers socket_available() over SPI 300 times a second; one that sends runs
+# in ~15 ms. This makes a silent watcher sleep instead, so it polls at about the
+# talking rate while still transmitting nothing. If the losses vanish, it was
+# the polling. If they stay, it was the silence.
+watcher_idle = 0  # seconds; 0 turns it off
+
+# The first explanation, tested directly. nina-fw has a power-mode command,
+# 0x17, that adafruit_esp32spi does not wrap: a nonzero byte is WIFI_PS_MIN_MODEM
+# (the radio dozes between beacons), zero is WIFI_PS_NONE (always listening).
+# None leaves the firmware's own default alone.
+power_save = None  # True, False, or None -- network.start() already turns it off
 
 size = 2
 serve_vx = 0.7
@@ -59,6 +73,10 @@ ball_kind = "ball"
 here_kind = "here"
 
 my_id = network.start()
+
+if power_save is not None:
+    resp = network._esp._send_command_get_response(0x17, ((int(power_save),),))
+    print(f"hand   {my_id} power_save={power_save} -> nina-fw replied {resp[0][0]}")
 sign = screen.text("pair", colors.AMBER, 1, 3, font=screen.Fonts.SMALL)
 ball = screen.block(size, size, colors.JADE, 0, 0)
 ball.hidden = True
@@ -84,7 +102,8 @@ while partner is None or heres_after < 5:
                 partner = parts[1]
                 print(
                     f"hand   {my_id} partner is {partner}, mode={mode} "
-                    f"loss={loss} watcher_talks={watcher_talks}"
+                    f"loss={loss} watcher_talks={watcher_talks} "
+                    f"watcher_idle={watcher_idle} power_save={power_save}"
                 )
 
 lower = int(my_id) < int(partner)
@@ -232,6 +251,8 @@ while True:
         send_ball(partner, *handoff)
     elif watcher_talks:
         network.send(partner, f"{here_kind} {my_id}")
+    elif watcher_idle:
+        time.sleep(watcher_idle)
 
     # --- nobody has the ball ----------------------------------------------------
     quiet = now - max(last_heard, state_since)

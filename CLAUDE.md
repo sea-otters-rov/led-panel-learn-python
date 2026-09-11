@@ -216,28 +216,37 @@ working *on* the project.
   "absence is the disconnect signal" design in the lesson notes is confirmed
   on hardware.
 
-- **A board that is not transmitting does not reliably receive.** Measured
-  2026-09-10 with `lessons\spike_handoff\handoff.py`: two boards passing a
-  ball, repeat-until-acknowledged handoffs, 30% of ball messages dropped on
-  purpose. The only change between the two runs is whether the board that is
-  merely *watching* sends anything:
+- **nina-fw starts the radio in power-save mode, and a board that is only
+  listening misses most of what is sent to it. `network.start()` turns it
+  off.** Found and confirmed 2026-09-10/11 with
+  `lessons\spike_handoff\handoff.py`: two boards passing a ball,
+  repeat-until-acknowledged handoffs, 30% of ball messages dropped on purpose,
+  varying only what the board that is merely *watching* does:
 
-        watcher      stalls  stale  ack frames mean/worst  ms/frame
-        silent          7      22        48-95 / 208         3-5
-        talks           0       0       4.4-4.9 / 11          15
+        watching board                  stalls  ack frames mean/worst  ms/frame
+        silent                          7-19     48-126 / 208           3-12
+        silent, slowed to 10 ms/frame     18     91-126 / 183          10-12
+        sends a message every frame        0      4.4-4.9 / 11            15
+        silent, power saving OFF           0      5.0-7.0 / 25             5
 
-  Silent watchers missed most of what was sent to them for seconds at a time,
-  so handoffs went unanswered and the ball was lost seven times in 30 s. With
-  the watcher sending a small message every frame: 42 handoffs in 60 s, none
-  lost, none doubled, acknowledged in ~5 frames. The likely mechanism is WiFi
-  power saving — the ESP32 dozes its radio when it has nothing to send and the
-  access point holds or drops traffic for it — and it fits the 267–407 ms tail
-  in the board-to-board table above. `adafruit_esp32spi` exposes no
-  power-save control (checked: its only "sleep" is `time.sleep`), so **the fix
-  is in the protocol: every board in a networked lesson sends something every
-  frame, including the one with nothing to say.** L204 already does, which is
-  why it never showed this. It is a second, independent reason for "send state
-  every frame", after the heartbeat one below.
+  Row 2 rules out the other suspect — hammering `socket_available()` over SPI
+  — because slowing the silent board's loop to the talking board's rate
+  changed nothing. Row 4 is the answer: nina-fw's command **`0x17`** (set power
+  mode) with a 0 selects `WIFI_PS_NONE`, the firmware replies 1, and a silent
+  board then hears everything. Its default is `WIFI_PS_MIN_MODEM`, which turns
+  the receiver off between beacons, and ESP32 modem sleep is a known cause of
+  lost *unicast* while broadcast still arrives (esp-idf issue #9766) — which
+  matches what the spike saw, and very likely the 267–407 ms tail in the
+  board-to-board table above. `adafruit_esp32spi` does not wrap `0x17`, so
+  `network.start()` sends it by number straight after joining. Nobody here runs
+  on a battery; the saving buys nothing.
+
+  **An earlier version of this note** said power saving was "almost certainly"
+  the cause, that there was no switch for it, and that every board therefore
+  had to send something every frame to stay awake. The first two were a guess
+  and the third a workaround for it; the switch exists and made the workaround
+  unnecessary. Boards in L205 still send every frame, but for liveness — a
+  partner that goes quiet is declared gone — not to keep a radio awake.
 
   Same spike, same day: **a handoff sent once is lost as often as a message
   is** — 10 of 32 at 30% loss, each one a ball nobody owns — while **repeating
@@ -513,9 +522,11 @@ restarts. Say so when adding one, instead of letting the next prompt reveal it.
   `device-requirements.txt` names `neopixel` itself. Setup never deletes any of
   it, so **every fresh setup puts the shadow libraries back into `lessons\lib`,
   and the first sync puts them on the board.** This contradicts "students never
-  run circup" above, and `lessons\lib` is committed, so step 6 has nothing to
-  add on a fresh clone. Not yet fixed as of 2026-09-10 — removing step 6 is the
-  likely answer. Deleting the files by hand leaves empty folders, which git
+  run circup" above, and `lessons\lib` is committed, so step 6 had nothing to
+  add on a fresh clone. **Removed 2026-09-11**; setup now says why it does not
+  run circup. The VS Code task "Board: install libraries into lessons\lib" still
+  runs the same install for maintainers adding a library — students can see it
+  in the task list, and clicking it brings the shadow copies straight back. Deleting the files by hand leaves empty folders, which git
   cannot see and `git status` will not show, but which sync still copies.
 
   **So does a board's own past, and a normal sync will never notice.** `sync`
