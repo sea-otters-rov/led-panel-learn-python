@@ -87,8 +87,15 @@ Serial Monitor panel are fine; they are identical on Windows and Linux.
 ```
 
 **Add a library** — add its name to `device-requirements.txt`, add the matching
-PyPI name to `requirements-intellisense.txt`, then run the
-**Board: install libraries into lessons\lib** task and sync.
+PyPI name to `requirements-intellisense.txt`, then run circup by hand and sync:
+
+```powershell
+.\.venv\Scripts\circup.exe --path .\lessons --board-id matrixportal_m4 --cpy-version 10.2.1 install -r .\device-requirements.txt
+```
+
+There is deliberately no task or setup step for this. Students never change
+which libraries exist, and a one-click install sat in their task list brought
+the frozen libraries below straight back onto their boards.
 
 Seven libraries are frozen into the firmware and must not be shipped in
 `lessons\lib`; circup reinstalls them as dependencies every time it runs, so

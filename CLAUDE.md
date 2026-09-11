@@ -524,9 +524,12 @@ restarts. Say so when adding one, instead of letting the next prompt reveal it.
   and the first sync puts them on the board.** This contradicts "students never
   run circup" above, and `lessons\lib` is committed, so step 6 had nothing to
   add on a fresh clone. **Removed 2026-09-11**; setup now says why it does not
-  run circup. The VS Code task "Board: install libraries into lessons\lib" still
-  runs the same install for maintainers adding a library — students can see it
-  in the task list, and clicking it brings the shadow copies straight back. Deleting the files by hand leaves empty folders, which git
+  run circup. The VS Code task "Board: install libraries into lessons\lib" that
+  ran the same install was removed the same day, because students could see it
+  in the task list and one click brought the shadow copies straight back.
+  **Nothing runs circup automatically now.** A maintainer who needs a new library
+  runs the command in `device-requirements.txt` by hand, deletes the seven
+  frozen libraries it drags back, and commits the result. Deleting the files by hand leaves empty folders, which git
   cannot see and `git status` will not show, but which sync still copies.
 
   **So does a board's own past, and a normal sync will never notice.** `sync`
