@@ -9,14 +9,14 @@ import time
 import colors
 import screen
 
-block = screen.block(3, 3, colors.JADE, 0, 14)
+block = screen.block(3, 3, colors.RED, 0, 14)
 
 # range(64) counts from 0 up to 63 -- one number for every column on the screen.
 # The indented lines run once for each of those numbers. Unindent, and they only
 # run once at the end.
-for step in range(64):
+for step in range(62):
     block.x = step  # step is 0 the first time round, then 1, then 2...
-    time.sleep(0.5)  # seconds to wait before the next step. Smaller = faster.
+    time.sleep(0.1)  # seconds to wait before the next step. Smaller = faster.
 
     # Also write to the serial console for each step. These prints are optional, but handy when debugging.
     print(f"walked to x:{block.x}")

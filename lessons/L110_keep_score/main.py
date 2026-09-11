@@ -6,7 +6,7 @@ block's .x. Set .text and they swap, right in the middle of the game.
 
 import random
 import time
-
+import interactions
 import colors
 import screen
 from displayio import TileGrid
@@ -15,10 +15,11 @@ screen.FULL_TILT = 4.0
 
 paddle_width = 12
 paddle_height = 2
-dot_count = 3
+bad_dot_count = 1
+bad_dot_size = 3
+dot_count = 4
 dot_size = 4
 fall_speed = 1
-wait_time = 0.1
 
 screen_center_x = screen.WIDTH // 2
 paddle_center_x = paddle_width // 2
@@ -31,18 +32,24 @@ paddle = screen.block(paddle_width, paddle_height, colors.CYAN, 0, paddle_y)
 
 dots: list[TileGrid] = []
 for index in range(dot_count):
-    dot = screen.circle(dot_size, random.choice(colors.RAINBOW))
+    if index % 2:
+        dot = screen.circle(dot_size, (colors.GREEN))
+    else:
+        dot = screen.circle(bad_dot_size, (colors.RED))
+
     dot.x = random.randint(0, dot_max_x)
     dot.y = index * -10  # spread out, so they arrive one at a time
     dots.append(dot)
 
 caught = 0
 missed = 0
+bad_caught = 0
 
 # Made last of everything, so the numbers draw on top of the dots instead of
 # disappearing behind them. Remember .y is the MIDDLE of the text.
-caught_sign = screen.text("0", colors.GOLD, 1, 6)
-missed_sign = screen.text("0", colors.RED, 52, 6)
+caught_sign = screen.text("0", colors.GREEN, 1, 4, "small")
+bad_caught_sign = screen.text("0", colors.YELLOW, 31, 4, "small")
+missed_sign = screen.text("0", colors.RED, 60, 4, "small")
 
 
 def drop(dot):
@@ -65,34 +72,61 @@ def on_the_paddle(dot):
     return True
 
 
+count = 0
 while True:
-    tilt_x, tilt_y, tilt_z = screen.tilt()
+    count = count + 1
+    tilt_x, tilt_y, tilt_z = interactions.smoothed_tilt()
     paddle.x = int(tilt_x * screen_center_x) + screen_center_x - paddle_center_x
     if paddle.x > paddle_max_x:
         paddle.x = paddle_max_x
     elif paddle.x < 0:
         paddle.x = 0
 
-    for dot in dots:
-        dot.y = dot.y + fall_speed
+    if count % 2 == 0:
+        for dot in dots:
+            dot.y = dot.y + fall_speed
 
-        if on_the_paddle(dot):
-            caught = caught + 1
-            drop(dot)
-            # .text works like .x did -- hand it something new and the screen
-            # changes. str() turns the number into text first, because as we
-            # saw in lesson 101, a sign needs a string of characters.
-            caught_sign.text = str(caught)
-            print(f"caught! the gold sign now reads {caught_sign.text}")
-        elif dot.y > screen.HEIGHT:
-            missed = missed + 1
-            drop(dot)
-            missed_sign.text = str(missed)
-            print(f"missed. the red sign now reads {missed_sign.text}")
+            if on_the_paddle(dot):
+                if dot.tile_width == dot_size:
+                    caught = caught + 1
+                    caught_sign.text = str(caught)
+                else:
+                    bad_caught = bad_caught + 1
+                    bad_caught_sign.text = str(bad_caught)
+                    missed = missed + 1
+                    missed_sign.text = str(missed)
+                    if bad_caught > 9:
+                        bad_caught_sign.x = 29
+
+                drop(dot)
+
+                print(f"caught! the gold sign now reads {caught_sign.text}")
+            elif dot.y > screen.HEIGHT:
+                if dot.tile_width == dot_size:
+                    missed = missed + 1
+                    if missed > 9:
+                        missed_sign.x = 56
+                    if missed > 99:
+                        screen.text("GAME OVER!", colors.RED, 3, 16)
+                        screen.text(
+                            f"Score: {caught - bad_caught}",
+                            colors.YELLOW,
+                            15,
+                            26,
+                            "small",
+                        )
+                        for dot in dots:
+                            dot.hidden = True
+                        screen.draw()
+
+                        screen.hold()
+                drop(dot)
+                missed_sign.text = str(missed)
+                print(f"missed. the red sign now reads {missed_sign.text}")
 
     screen.draw()
 
-    time.sleep(wait_time)
+    time.sleep(0.01)
 
 # Try these:
 #   - Turn caught_sign green once you get past 10.

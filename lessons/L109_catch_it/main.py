@@ -88,7 +88,7 @@ while True:
 
     screen.draw()
 
-    time.sleep(wait_time)
+    time.sleep(0.01)
 
 # Try these:
 #   - screen.FULL_TILT sets how far you have to tip to reach the edge. Try 9,

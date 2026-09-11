@@ -11,8 +11,8 @@ import colors
 import screen
 from displayio import TileGrid
 
-star_count = 100
-fall_speed = 1
+star_count = 10
+fall_speed = 2
 
 # Stars come in a few sizes. The edges are worked out from the biggest one, so
 # that even a big star cannot end up hanging off the side.
@@ -27,7 +27,7 @@ stars: list[TileGrid] = []
 
 # Make the stars once, before the loop. append() puts one more on the end.
 for index in range(star_count):
-    size = 1
+    size = 2
 
     # Make the big ones last. Things are drawn in the order they are made, so
     # going last is what puts them on top of all the little ones.

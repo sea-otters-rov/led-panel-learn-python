@@ -30,7 +30,7 @@ ball_y = 6.0
 ball_speed_x = 0.1
 ball_speed_y = 0.1
 
-tilt_push = 0.01  # how much a full tilt adds to the speed each loop
+tilt_push = 0.005  # how much a full tilt adds to the speed each loop
 
 while True:
     tilt_x, tilt_y, tilt_z = screen.tilt()

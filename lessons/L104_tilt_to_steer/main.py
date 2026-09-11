@@ -40,7 +40,7 @@ while True:
 
     print(f"tilt {tilt_x:+.2f}, {tilt_y:+.2f}, {tilt_z:+.2f}")
 
-    time.sleep(0.05)
+    time.sleep(0.001)
 
 
 # Try these:

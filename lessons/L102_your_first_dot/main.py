@@ -9,7 +9,7 @@ import screen
 
 # screen.block(width, height, color, x, y) makes a solid rectangle and puts it up.
 # You can hand it a spot right away, like this red one marking where the grid starts.
-first_block = screen.block(2, 2, colors.RED, 0, 0)
+first_block = screen.block(3, 3, colors.RED, 26, 14)
 
 # Or leave the spot off and set it afterwards. Same block either way -- but this
 # is the version you can keep moving, which is how everything moves in lesson 103.
@@ -17,6 +17,10 @@ second_block = screen.block(3, 3, colors.CYAN)
 # .x and .y are the block's top-left corner, not its middle.
 second_block.x = 30  # across: 0 is the far left, 63 is the far right
 second_block.y = 14  # down:   0 is the top, 31 is the bottom. Further down is bigger!
+
+third_block = screen.block(3, 3, colors.GREEN)
+third_block.x = 22
+third_block.y = 14
 
 print(
     f"second_block at x:{second_block.x}, y:{second_block.y} on a {screen.WIDTH} x {screen.HEIGHT} screen"

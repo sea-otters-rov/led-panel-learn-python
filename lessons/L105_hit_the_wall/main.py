@@ -25,6 +25,9 @@ block_center_y = block.height // 2
 max_x = screen.WIDTH - block.width
 min_x = 0
 
+max_y = screen.HEIGHT - block.width
+min_y = 0
+
 
 while True:
     tilt_x, tilt_y, tilt_z = screen.tilt()
@@ -40,12 +43,18 @@ while True:
     elif block.x < min_x:  # ran off the left
         block.x = min_x
         warning.hidden = False
+    elif block.y > max_y:  # ran off the right
+        block.y = max_y
+        warning.hidden = False
+    elif block.y < min_y:  # ran off the left
+        block.y = min_y
+        warning.hidden = False
     else:  # somewhere in the middle, so no warning
         warning.hidden = True
 
     print(f"block.x {block.x:3}   ({min_x} to {max_x})")
 
-    time.sleep(0.05)
+    time.sleep(0.005)
 
 # Try these:
 #   - The block still escapes off the top and bottom. Fix it the same way.

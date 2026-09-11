@@ -11,8 +11,8 @@ import screen
 # Change one, save, and the screen changes with it. Right now you are changing
 # them manually, but soon the board will change them while it runs, and
 # that is the whole trick behind everything that moves.
-text_message = "hi!"  # This is a string, a sequence of characters
-text_x = 2  # These are integers, single value
+text_message = "BAL"  # This is a string, a sequence of characters
+text_x = 23  # These are integers, single value
 text_y = 16
 
 # Colors are created by mixing red, green, and blue from 0-255. Some examples:
@@ -21,7 +21,7 @@ text_y = 16
 # Blue: 0,0,255
 # Light blue: 64,64,255
 # Purple: 255,0,255
-text_color = colors.color_from_components(0, 255, 255)
+text_color = colors.color_from_components(255, 0, 0)
 
 sign = screen.text(text_message, text_color)
 sign.x = text_x  # how far across. 0 is the far left edge.

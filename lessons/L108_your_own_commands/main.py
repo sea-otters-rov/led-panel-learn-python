@@ -12,15 +12,15 @@ import rainbowio
 import screen
 from displayio import TileGrid
 
-firework_count = 50
-firework_size = 11
+firework_count = 1
+firework_size = 25
 burst_frames = 40  # how many pictures the expanding ring is made of
-fade_rate = 0.9  # how much brightness survives each loop. Lower burns out faster.
+fade_rate = 0.8  # how much brightness survives each loop. Lower burns out faster.
 
 # A gentle nudge is plenty.
 # Do not shake the board hard -- the LED panel and its USB cable do not enjoy it.
 nudge_force = 1.1
-quiet_seconds = 2.0  # if nobody nudges it, send one up anyway
+quiet_seconds = 0  # if nobody nudges it, send one up anyway
 
 max_x = screen.WIDTH - firework_size
 max_y = screen.HEIGHT - firework_size
@@ -98,7 +98,7 @@ while True:
 
     screen.draw()
 
-    time.sleep(0.03)
+    time.sleep(0.05)
 
 # Try these:
 #   - Change fade_rate to 0.99, then 0.75. How long does a firework last?
