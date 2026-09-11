@@ -784,9 +784,43 @@ considered and rejected: it reintroduces exactly the shake-sensitivity that
 the two-state design was built to remove. The lesson poses it as a design
 question instead.
 
-Still unspiked: **the handoff itself** (arc item 205). That is the one remaining
-place where two boards can disagree, and it wants doing before 17 is written,
-not while.
+### The handoff spike: done, 2026-09-10
+
+`lessons\spike_handoff\handoff.py`, same file on both boards, run with
+`watch_both.py --reload`. One board owns the ball and simulates it; when it
+leaves the top edge the owner converts it to the partner's panel and names
+the partner as the new owner. 30% of ball messages are thrown away on
+purpose, so a rare failure shows up in a minute. Three runs, each ~60 s:
+
+        handoff rule       watcher   handoffs  lost  stale  both_own  ack frames
+        repeat until ack   silent       ~15      7     22      0       48-95 / 208
+        repeat until ack   talks         42      0      0      0      4.4-4.9 / 11
+        send once          talks         32     10      0      0          --
+
+What that decides for 205:
+
+- **Repeat the handoff every frame until the partner's own "I own it" comes
+  back.** Sent once, a handoff is lost exactly as often as a message is -- ten
+  of 32 here -- and a lost handoff is the silent, fatal case: nobody owns the
+  ball and it just stops. The acknowledgement costs nothing extra, because it
+  is the new owner's ordinary every-frame message.
+- **Every board sends every frame, including the one that is only watching.**
+  This is the surprise. A silent watcher missed most of what was sent to it,
+  for seconds at a time; the same run with the watcher sending a small message
+  each frame lost nothing. Almost certainly WiFi power saving, and there is no
+  switch for it in `adafruit_esp32spi`. See `CLAUDE.md`.
+- **No sequence number.** It was built into the spike to catch stale messages
+  -- an old handoff, or an old "I own it" posing as an acknowledgement -- and
+  across 74 handoffs with a talking watcher it caught none. It only fired in
+  the deaf run. 205 leaves it out; it is a try-these, and a natural piece of
+  the security thread ("which message is newer, and who says so?").
+- **A stall rule stays as the backstop.** If nobody has sent a ball for a
+  couple of seconds, both boards agree the lower id serves a new one. It never
+  fired with repeat-until-ack and a talking watcher, but a partner who saves
+  mid-rally takes the ball with them, and something has to bring it back.
+
+Mirroring was right as designed: `x_new = WIDTH - size - x`, `vx_new = -vx`,
+`vy_new = -vy`, and `y_new = -y` carries the overshoot across the seam.
 
 **A pairing cannot be remembered across a reboot.** Tested on hardware
 2026-09-08: board-side code cannot write the board's filesystem at all

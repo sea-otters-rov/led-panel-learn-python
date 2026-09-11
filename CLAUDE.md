@@ -216,6 +216,35 @@ working *on* the project.
   "absence is the disconnect signal" design in the lesson notes is confirmed
   on hardware.
 
+- **A board that is not transmitting does not reliably receive.** Measured
+  2026-09-10 with `lessons\spike_handoff\handoff.py`: two boards passing a
+  ball, repeat-until-acknowledged handoffs, 30% of ball messages dropped on
+  purpose. The only change between the two runs is whether the board that is
+  merely *watching* sends anything:
+
+        watcher      stalls  stale  ack frames mean/worst  ms/frame
+        silent          7      22        48-95 / 208         3-5
+        talks           0       0       4.4-4.9 / 11          15
+
+  Silent watchers missed most of what was sent to them for seconds at a time,
+  so handoffs went unanswered and the ball was lost seven times in 30 s. With
+  the watcher sending a small message every frame: 42 handoffs in 60 s, none
+  lost, none doubled, acknowledged in ~5 frames. The likely mechanism is WiFi
+  power saving — the ESP32 dozes its radio when it has nothing to send and the
+  access point holds or drops traffic for it — and it fits the 267–407 ms tail
+  in the board-to-board table above. `adafruit_esp32spi` exposes no
+  power-save control (checked: its only "sleep" is `time.sleep`), so **the fix
+  is in the protocol: every board in a networked lesson sends something every
+  frame, including the one with nothing to say.** L204 already does, which is
+  why it never showed this. It is a second, independent reason for "send state
+  every frame", after the heartbeat one below.
+
+  Same spike, same day: **a handoff sent once is lost as often as a message
+  is** — 10 of 32 at 30% loss, each one a ball nobody owns — while **repeating
+  it every frame until the partner's own "I own it" comes back** lost 0 of 42.
+  A sequence number was built in to catch stale messages and caught none in 74
+  handoffs with a talking watcher, so L205 does without it.
+
 - **A board that stops broadcasting gets declared dead even while it is alive.**
   Seen when the spike went quiet during a measurement stage: its partner aged
   it out after 3 s and reported LOST while it was busily running. So the
@@ -466,11 +495,25 @@ restarts. Say so when adding one, instead of letting the next prompt reveal it.
   one. After any circup run, delete them again and re-sync — or the 57.6 KB
   quietly returns.
 
+  **And `tools\setup.ps1` runs circup on every machine, students included.**
+  Step 6 is `circup install -r device-requirements.txt` into `lessons\lib`.
+  `adafruit_matrixportal` drags in `adafruit_portalbase`, which drags in
+  `adafruit_esp32spi`, `adafruit_io`, `adafruit_minimqtt`, `adafruit_requests`,
+  `adafruit_connection_manager`, `adafruit_bus_device` and more; and
+  `device-requirements.txt` names `neopixel` itself. Setup never deletes any of
+  it, so **every fresh setup puts the shadow libraries back into `lessons\lib`,
+  and the first sync puts them on the board.** This contradicts "students never
+  run circup" above, and `lessons\lib` is committed, so step 6 has nothing to
+  add on a fresh clone. Not yet fixed as of 2026-09-10 — removing step 6 is the
+  likely answer. Deleting the files by hand leaves empty folders, which git
+  cannot see and `git status` will not show, but which sync still copies.
+
   **So does a board's own past, and a normal sync will never notice.** `sync`
   only copies; only `-Clean` deletes. Found 2026-09-10: board B arrived from
-  another machine still carrying the stock demo's `lib/` — all seven frozen
+  another machine carrying exactly what step 6 produces — all seven frozen
   libraries, including **`adafruit_esp32spi` 11.1.4**, a build this repo has
-  never contained — plus the old flat `L01`–`L13` lessons, 128 KB in all. It
+  never contained, plus portalbase's `adafruit_io` and `adafruit_minimqtt` — and
+  the old flat `L01`–`L13` lessons, 128 KB in all. It
   ran a whole session of Part 2 networking tests on that shadow copy while
   board A ran the frozen one, and everything passed, so nothing looked wrong.
   **The tell is free space**: two boards on the same image should report the
