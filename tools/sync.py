@@ -302,6 +302,16 @@ def copy(src, dst):
         fh.write(data)
 
 
+def attached_boards():
+    """Every board plugged in right now, by mount point. Possibly none.
+
+    Always looks; never remembers. Anything that wants "the board" without
+    pinning one should use this rather than cached(), because the cache is
+    only maintained on the pinned path now -- see copy_to_every_board().
+    """
+    return [root for root in candidate_roots() if board_uid(root) is not None]
+
+
 def copy_to_every_board(src, rel):
     """Put one file on every attached board. The default path.
 
@@ -315,8 +325,13 @@ def copy_to_every_board(src, rel):
     Reports every board it wrote to, and says so loudly if any of them failed:
     a partial save here means two boards running different code, which is the
     hardest kind of Part 2 bug to see.
+
+    Note that this path never writes tools\\.circuitpy. The cache exists for the
+    pinned path, which validates it against a UID. Anything unpinned should call
+    attached_boards() instead of cached(), or it will read a drive letter that
+    nothing is keeping true any more.
     """
-    roots = [root for root in candidate_roots() if board_uid(root) is not None]
+    roots = attached_boards()
     if not roots:
         print("[sync] No CIRCUITPY drive found.")
         print("       Check the USB cable is a DATA cable, not charge-only.")

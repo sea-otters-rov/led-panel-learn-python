@@ -5,4 +5,4 @@ That is the only reason to edit this file -- your actual work happens in the
 lesson file itself.
 """
 
-from L206_keeping_score import main
+from L201_say_it_to_everyone import main

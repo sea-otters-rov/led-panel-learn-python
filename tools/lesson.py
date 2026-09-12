@@ -5,7 +5,8 @@ r"""List the lessons and switch which one the board runs.
     .\.venv\Scripts\python.exe .\tools\lesson.py L101_say_something switch directly
 
 Switching rewrites the single import line in lessons\code.py and pushes it to
-the board, so the change takes effect the same way a save does.
+every attached board, so the change takes effect the same way a save does --
+and two boards move to the new lesson together, which is what Part 2 wants.
 
 The list is built by scanning lessons\ for folders holding a main.py, and the
 synopsis is the first line of that file's docstring. There is no catalogue file
@@ -18,7 +19,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from sync import LESSONS, cached, copy, discover
+from sync import LESSONS, attached_boards, copy
 
 # [ \t]* rather than \s*: \s is greedy across newlines, so it ate the file's
 # trailing newline and every switch left code.py without one.
@@ -109,18 +110,32 @@ def switch(name):
         fh.write(src)
     print(f"[lesson] code.py now runs {name}")
 
-    root = cached() or discover()
-    if not root:
+    # Every attached board, the same as Ctrl+S -- so two boards switch lesson
+    # together, which is what Part 2 wants. Looks every time rather than
+    # trusting sync's cache: that cache is maintained only on the pinned path,
+    # so an unpinned reader of it can be sent at a board that was unplugged
+    # hours ago.
+    roots = attached_boards()
+    if not roots:
         print(
             "[lesson] No board found -- the change is saved, sync when it is plugged in."
         )
         return 0
-    try:
-        copy(CODE_PY, os.path.join(root, "code.py"))
-    except OSError as exc:
-        print(f"[lesson] Could not push code.py to {root}: {exc}")
+
+    done, failed = [], []
+    for root in roots:
+        try:
+            copy(CODE_PY, os.path.join(root, "code.py"))
+            done.append(root)
+        except OSError as exc:
+            failed.append(f"{root} ({exc})")
+
+    if done:
+        where = ", ".join(done)
+        print(f"[lesson] pushed to {where} -- restarting into it now.")
+    if failed:
+        print(f"[lesson] could not push to {', '.join(failed)}")
         return 1
-    print(f"[lesson] pushed to {root} -- the board is restarting into it now.")
     return 0
 
 
