@@ -45,7 +45,7 @@ serve_speed_y = 0.8
 stall_after = 2.0  # nobody has had the ball this long -> a new one is served
 forget_after = 15.0  # partner silent this long -> they have gone
 
-my_id = interactions.join_wifi()
+my_id = interactions.join_wifi(show_id=False)
 
 # Lesson 204's tap-to-pair, packed up in interactions. It also picks a pairing
 # back up after a save, if it hears any of these from a board that still thinks

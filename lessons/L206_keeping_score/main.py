@@ -49,6 +49,7 @@ say and hands the whole list to network.send() at once.
 import random
 
 import colors
+import rainbowio
 import interactions
 import network
 import screen
@@ -58,9 +59,8 @@ over_kind = "over"
 lost_kind = "lost"
 wait_kind = "wait"
 
+ball_count = 2
 ball_size = 4
-paddle_width = 14
-paddle_height = 2
 serve_speed_y = 0.8
 serve_spread_x = 0.9  # a serve goes sideways somewhere between -this and this
 
@@ -69,24 +69,25 @@ forget_after = 15.0  # partner silent this long -> they have gone
 
 my_color = colors.JADE
 their_color = colors.MAGENTA
-ball_colors = [colors.CYAN, colors.GOLD]
 
-my_id = interactions.join_wifi()
+my_id = interactions.join_wifi(show_id=False)
 partner_kinds = [mine_kind, over_kind, lost_kind, wait_kind]
 partner_id = interactions.tap_to_pair(partner_kinds)
 
 screen_center_x = screen.WIDTH // 2
-paddle_y = screen.HEIGHT - paddle_height
 ball_max_x = screen.WIDTH - ball_size
-serve_y = paddle_y - ball_size - 1
 
 
 class Paddle:
-    """Your paddle. There is only one, but it reads better as a thing."""
+    """Your paddle. There is only one, but it reads better like this than a bunch of
+    variables sprawled all over"""
 
     def __init__(self, color):
-        self.width = paddle_width
-        self.shape = screen.block(self.width, paddle_height, color, 0, paddle_y)
+        self.width = 14
+        self.height = 2
+        self.shape = screen.block(
+            self.width, self.height, color, 0, screen.HEIGHT - self.height
+        )
 
     def steer(self, tilt_x):
         # Exactly as in lesson 109.
@@ -103,8 +104,8 @@ class Paddle:
         # past can drift sideways into the paddle and be caught from behind.
         return (
             ball.speed_y > 0
-            and ball.y + ball_size >= paddle_y
-            and ball.y + ball_size - ball.speed_y <= paddle_y
+            and ball.y + ball_size >= paddle.shape.y
+            and ball.y + ball_size - ball.speed_y <= paddle.shape.y
             and ball.x + ball_size >= self.shape.x
             and ball.x <= self.shape.x + self.width
         )
@@ -135,12 +136,12 @@ class Ball:
         self.shape.hidden = True
         screen.timer_reset(self.timer)
 
-    def serve_onto(self, x, y, speed_y):
+    def serve(self):
         # A fresh ball. Sideways is random, so no two rallies start the same.
-        self.x = x
-        self.y = y
+        self.x = random.uniform(0, ball_max_x)
+        self.y = paddle.shape.y - ball_size - 2
         self.speed_x = random.uniform(-serve_spread_x, serve_spread_x)
-        self.speed_y = speed_y
+        self.speed_y = -serve_speed_y
 
     def take_from(self, msg, first):
         # Their message already says where it is on OUR panel, so believe it.
@@ -181,7 +182,10 @@ class Ball:
 
 
 paddle = Paddle(my_color)
-balls = [Ball(0, ball_colors[0]), Ball(1, ball_colors[1])]
+
+balls = []
+for index in range(ball_count):
+    balls.append(Ball(index, rainbowio.colorwheel(index * 25)))
 
 my_score = 0
 their_score = 0
@@ -227,7 +231,7 @@ def listen_to_our_partner():
         screen.timer_reset("partner")
 
         if msg[0] == wait_kind:
-            continue
+            continue  # ignore wait messages, continue to the next message in the list
 
         ball = balls[int(msg[2])]
         screen.timer_reset(ball.timer)
@@ -262,21 +266,16 @@ def play_the_ball(ball, tilt_x):
         # Line it up with the top of the paddle and send it back. Where it hits
         # decides where it goes: the end of the paddle throws it sideways, the
         # middle sends it straight back.
-        ball.y = paddle_y - ball_size - (ball.y + ball_size - paddle_y)
+        ball.y = paddle.shape.y - ball_size - 1
         ball.speed_y = -ball.speed_y
         middle = paddle.shape.x + paddle.width / 2
         ball.speed_x = (ball.x + ball_size / 2 - middle) / paddle.width * 2
 
     elif ball.y > screen.HEIGHT:
-        # Past the paddle. We are the only board that can possibly know this,
-        # so we are the one who has to say it -- and the ball goes back to
-        # them, served fresh above THEIR paddle.
+        # Past the paddle. Since we know it, we're going to say it and serve.
         their_score = their_score + 1
         show_the_score()
-        # Onto the top of THEIR panel, falling towards their paddle -- the same
-        # way a ball arrives when it goes over the top, so whoever won the
-        # point is the one who has to play it.
-        ball.serve_onto(random.uniform(0, ball_max_x), -ball_size, serve_speed_y)
+        ball.serve()
         ball.let_go(lost_kind)
         print(f"missed ball {ball.number}")
 
@@ -319,7 +318,7 @@ def nobody_has_this_ball(ball):
     # and took the ball with them. Nobody scores for this.
     print(f"ball {ball.number} went missing")
     if is_ours_to_serve(ball):
-        ball.serve_onto(random.uniform(0, ball_max_x), serve_y, -serve_speed_y)
+        ball.serve()
         ball.hold()
     else:
         ball.let_go(wait_kind)
@@ -350,7 +349,7 @@ for ball in balls:
 # One ball each to start with, and both boards work out which is whose.
 for ball in balls:
     if is_ours_to_serve(ball):
-        ball.serve_onto(random.uniform(0, ball_max_x), serve_y, -serve_speed_y)
+        ball.serve()
         ball.hold()
 
 while True:
@@ -374,29 +373,25 @@ while True:
 
 # Try these:
 #
-#   - Add a third ball: put another Ball in the balls list and give it a color.
+#   - Add a third ball: set ball_count to 3.
 #     Everything else already works, because nothing in the loop knows how many
 #     there are. Then watch the frame rate: every extra ball adds a message to
 #     every trip, and messages are what a frame pays for.
+#   - What happens if you and your partner have ball_count set differently? Why?
 #   - Play to ten. Nothing here ever ends a match, so add it: when a score
 #     reaches 10, stop serving and put the winner up on the screen.
-#   - Make `lost` say "add one" instead of your partner's actual score -- send
-#     1, and have the board that receives it add 1 to its own score. Now get
-#     both boards to miss at the same moment, a few times over. Sooner or later
-#     the two panels disagree about the score for good. Saying what a number IS
-#     survives being repeated and being late. Saying what CHANGED does not.
 #   - Give the two balls different sizes. ball_size will have to belong to the
 #     Ball instead of being one number shared by all of them -- which is
 #     exactly the sort of thing a class is for.
 #
-# And the mischief:
+# And a bit of fun:
 #
 #   - Never admit you missed: when a ball goes past your paddle, serve it again
 #     on your own panel instead of letting go of it. Your partner's score never
 #     moves again.
 #   - Award yourself points: send a `lost` for a ball you actually hit.
 #   - Now sit on the other side of it. Your partner's board believes every
-#     number you send and checks none of them -- but it is not as blind as it
-#     looks. It hears where each ball is and how you are tilting, every frame
+#     number you send and checks none of them. However,
+#     it hears where each ball is and how you are tilting, every frame
 #     you hold one. What could it work out for itself, and what would it have
 #     to remember in order to do it?
