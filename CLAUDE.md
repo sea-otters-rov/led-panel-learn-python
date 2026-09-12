@@ -338,7 +338,8 @@ user another approval prompt. Run them from the repo root, one per call:
     git commit --quiet -F .commitmsg
 
 **With two boards attached, every one-board command above refuses rather than
-guessing.** Drive letters are not stable — the two boards here swapped E: and
+guessing** — except `sync.py`, the Ctrl+S path, which now saves to *both*; see
+below. Drive letters are not stable — the two boards here swapped E: and
 G: inside a single session — so "the first CIRCUITPY" silently addresses
 whichever enumerated first, and a save that lands on the board you were not
 watching costs an afternoon. Boards are named in `tools\boards.json` (per
@@ -354,25 +355,33 @@ serial number. These are the invariant strings, two per board:
     .\.venv\Scripts\python.exe .\tools\verify_board.py --board B
     .\.venv\Scripts\python.exe .\tools\watch_both.py --reload
 
-`sync.py` — the Ctrl+S path — takes the label from the `LEARNPY_BOARD`
-environment variable instead of an argument, so the VS Code task string never
-changes. Unset with two boards attached, it refuses **when it has to go
-looking**; with a warm `tools\.circuitpy` cache it still uses the remembered
-drive, so set the variable rather than relying on the refusal.
+**Ctrl+S saves to EVERY attached board.** Changed 2026-09-12: Part 2 runs the
+same lesson on both ends, so one save reaching both panels is what is wanted
+nearly every time — and "all of them" cannot land on the wrong board, which was
+the entire hazard the old refusal existed for. A student is unaffected: one
+board attached means "all" is that one.
 
-**`LEARNPY_BOARD=all` saves to every attached board**, which is what testing
-both ends of a Part 2 lesson wants. Measured 2026-09-12, nine interleaved saves
-each: one board 425 ms median, all boards **577 ms** — the boards are written
-in parallel, so the second costs ~150 ms rather than another full ~400 ms
-flash write. It is the one mode that rescans the drives every save instead of
-caching them, because a remembered list would silently skip a board plugged in
-later, and a save reaching one board out of two is the exact failure the
-refusal exists to prevent.
+Measured, nine interleaved saves each:
 
-Keep it opt-in. Two boards are usually two people, and `LEARNPY_BOARD=A` is
-still what you want when deliberately running different lessons on each board —
-which is also how a save stays staggered, so one board can re-pair from the
-other instead of both needing a knock.
+    one board  (pinned, cached)     median 375-425 ms
+    two boards (the default)        median 577-590 ms
+
+The boards are written **in parallel** — nearly all of a save is the flash
+waiting, and two boards are two USB volumes — so the second costs ~150 ms
+rather than another full ~400 ms. Sequential measured ~900 ms.
+
+The default does **not** cache the drive list; it rescans every save. A stale
+drive letter self-heals because the copy fails and that triggers rediscovery,
+but a board plugged in since the last save fails nothing and a remembered list
+would just leave it out quietly. A cold scan in a fresh process — the only kind
+a save does — is 5.2 ms median, 15.7 ms worst, about 1% of a save.
+
+`sync.py` still takes a label from the `LEARNPY_BOARD` environment variable
+rather than an argument, so the VS Code task string never changes. **Set it to
+a board label to address one board**: when running different lessons on each,
+and when you want saves staggered so one board can re-pair from the other
+instead of both needing a knock. `LEARNPY_BOARD=all` is accepted and means the
+same as leaving it unset.
 
 **`watch_both.py` is the instrument that makes Part 2 debuggable.** "The serial
 port is exclusive" is about one port; two boards have two, so one process can

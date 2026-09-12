@@ -63,27 +63,41 @@ Three traps, all of which cost real debugging time:
    is untouched: LEARNPY_BOARD is unset, so it is one os.environ.get and no
    extra open(). Nobody without two boards pays anything.
 
-   Unset, with two boards attached, sync.py REFUSES rather than picking the
-   first. Two boards were seen swapping E: and G: across one session, so
-   "the first one" is not stable even within a single afternoon.
+   UNSET IS NOW "EVERY ATTACHED BOARD", and that is the answer to the two-board
+   problem rather than the refusal this file used to carry. Part 2 runs the same
+   lesson on both ends, so one Ctrl+S reaching both panels is what is wanted
+   nearly every time; and "all of them" cannot address the wrong board, which
+   is the whole hazard the refusal existed for. It is also what a student gets,
+   unchanged in effect, because a student has one board and "all" is one.
 
-   LEARNPY_BOARD=all copies to EVERY attached board instead, which is what a
-   maintainer running both ends of a Part 2 lesson wants: one Ctrl+S, both
-   panels. It is the one path that does not cache the drive list, because a
-   stale list would silently skip a board plugged in since the last save --
-   and a save that quietly reaches one board out of two is exactly the failure
-   the refusal above exists to prevent. A full scan of the drive letters costs
-   8.8 ms median / 20 ms worst, measured over 200 runs, against a ~430 ms save.
+   The default therefore does NOT use the cache. It scans every save, because a
+   remembered list cannot self-heal the way a remembered drive letter does: a
+   stale drive makes the copy FAIL, which triggers rediscovery, but a board
+   plugged in since the last save fails nothing and would simply be left out
+   quietly. Plug a board in, save, and it is included -- no cache to go stale.
 
-   The boards are written in parallel, so the second one is nearly free.
+   A cold scan in a fresh process -- which is the only kind a save does -- is
+   5.2 ms median, 15.7 ms worst, over 9 interleaved runs. Against a ~425 ms
+   save that is ~1%. (The 100 ms in the paragraph above is a different and much
+   older measurement of validating a volume; it does not describe this scan,
+   and this one was taken cold and per-process precisely so it could not be a
+   warm-loop illusion.)
+
+   The boards are written IN PARALLEL, so the second one is nearly free.
    Measured end to end, nine interleaved saves each:
 
-       LEARNPY_BOARD=A      median 425 ms   best 380   worst 437
-       LEARNPY_BOARD=all    median 577 ms   best 520   worst 603
+       one board  (pinned, cached)   median 425 ms   best 380   worst 437
+       two boards (the default)      median 577 ms   best 520   worst 603
 
-   Sequential writes would have cost ~900 ms. It stays opt-in anyway, because
-   two boards are usually two people, and because a maintainer deliberately
-   running different lessons on each board wants a save to land on one.
+   Sequential writes measured ~900 ms. Nearly all of a save is the flash
+   waiting rather than the CPU working, and two boards are two USB volumes, so
+   the waiting overlaps.
+
+   LEARNPY_BOARD is still how you address ONE board -- a label from
+   tools\\boards.json. Use it when running different lessons on each board, and
+   when you want saves staggered so one board can re-pair from the other
+   instead of both needing a knock. LEARNPY_BOARD=all also still works, and now
+   means the same as leaving it unset.
 
 A UTF-8 BOM on a .py file is stripped on the way to the board, with a warning.
 CircuitPython does not skip one, and the SyntaxError it raises names line 1 and
@@ -140,6 +154,10 @@ def candidate_roots(parents=None):
 # Returned by discover() when it found boards but cannot tell which was meant.
 # Distinct from None so the caller does not advise checking the USB cable when
 # the cable is fine and the problem is that there are two of them.
+#
+# main() no longer reaches this: it only calls discover() with a UID to match,
+# and an unpinned save goes to every board instead of having to choose. Kept so
+# that discover(None) stays safe to call rather than quietly picking a board.
 AMBIGUOUS = "ambiguous"
 
 # Returned by wanted_uid() for LEARNPY_BOARD=all. An object(), not a string, so
@@ -285,7 +303,7 @@ def copy(src, dst):
 
 
 def copy_to_every_board(src, rel):
-    """Put one file on every attached board. LEARNPY_BOARD=all.
+    """Put one file on every attached board. The default path.
 
     Deliberately looks for the boards every time instead of remembering them.
     The cached-drive trick the rest of this file uses works because a wrong or
@@ -368,7 +386,10 @@ def main():
         print(f"[sync] {exc}")
         return 1
 
-    if want is EVERY:
+    # Unset means every attached board -- see the module docstring. A student
+    # has one board, so "every" is that one and nothing about their save
+    # changes except the ~5 ms scan that finds it.
+    if want is None or want is EVERY:
         return copy_to_every_board(src, rel)
 
     root = cached(want)
