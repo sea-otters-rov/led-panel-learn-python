@@ -150,8 +150,8 @@ class Ball:
 
     def serve(self):
         # A fresh ball. Sideways is random, so no two rallies start the same.
-        self.x = random.uniform(0, ball_max_x)
-        self.y = paddle.shape.y - ball_size - 2
+        self.x = screen_center_x
+        self.y = paddle.shape.y - ball_size - 4
         self.speed_x = random.uniform(-serve_spread_x, serve_spread_x)
         self.speed_y = -serve_speed_y
 
