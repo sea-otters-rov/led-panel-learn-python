@@ -168,10 +168,10 @@ def while_we_have_it(tilt_x):
     """The ball is ours: nobody else moves it, draws it, or decides about it."""
     global state, ball_y, speed_x, speed_y
 
-    # Listen, even though nothing our partner says changes what we do while the
-    # ball is ours. Hearing ANYTHING from them is what keeps the "partner" clock
-    # alive -- so we ask, and act on none of it.
-    get_partner_msg([])
+    # Listen for your partner's waiting messages. We don't need to do anything with
+    # them, but get_partner_msg resets the lost partner timer any time it
+    # receives something
+    get_partner_msg([wait_kind])
 
     # Say where the ball is and how we are tilting.
     network.send(partner_id, f"{have_kind} {my_id} {ball_x} {ball_y} {tilt_x}")
@@ -181,7 +181,9 @@ def while_we_have_it(tilt_x):
     move_the_ball()
 
     if paddle_caught_it():
+        # Line the ball to the top of the paddle
         ball_y = paddle_y - ball_size - (ball_y + ball_size - paddle_y)
+        # And reverse vertical speed
         speed_y = -speed_y
     elif ball_y > screen.HEIGHT:
         # Missed it. Nobody has the ball now, so after a moment one of us
@@ -189,7 +191,7 @@ def while_we_have_it(tilt_x):
         state = wait_kind
         ball.hidden = True
         print("missed")
-    elif ball_y < 0:
+    elif ball_y < -ball_size:
         # Over the top: it is theirs now.
         give_away()
 
@@ -209,7 +211,7 @@ def while_we_are_giving_it():
     # touching -- so left and right swap, and both speeds flip: a ball going up
     # and to the left here is going down and to the right there.
     their_x = screen.WIDTH - ball_size - ball_x
-    their_y = 0  # always start them at the top
+    their_y = -ball_size  # always start the ball just off screen so it doesn't pop in
     network.send(
         partner_id, f"{give_kind} {my_id} {their_x} {their_y} {-speed_x} {-speed_y}"
     )
@@ -282,7 +284,7 @@ while True:
 
     screen.draw()
 
-# Try these -- each one changes something you can watch happen:
+# Try these:
 #
 #   - Every serve is one of the same two angles. In serve(), pick the sideways
 #     speed at random instead: random.uniform(-0.9, 0.9). Now no two rallies
@@ -294,41 +296,31 @@ while True:
 #     the paddle, and set speed_x from that.
 #   - Make a rally get harder. Multiply speed_x and speed_y by 1.05 every time
 #     the paddle catches it. How many hits before it is impossible?
-#   - Set ball_size to 8 and play a rally. Two things change: it is easier to
-#     hit, AND it arrives in a different place on your partner's panel. Which
-#     line decides the second one?
-#   - Break the mirror on purpose. In while_we_are_giving_it(), send ball_x
-#     instead of screen.WIDTH - ball_size - ball_x. Send the ball over close to
-#     one edge and watch which side it comes in on. Put it back.
-#   - Change their_y from 0 to 20, so the ball arrives most of the way down
-#     their panel. Play a rally each way. Is it still a fair game?
+#   - Try a larger or smaller ball size. What happens if you and your partner
+#     don't have the same settings?
 #
 # Now break the rules and see what the messages are really for:
 #
-#   - Lose half the handovers on purpose. In while_we_are_giving_it(), just
+#   - Make it send the give once and set state to wait_kind straight afterwards,
+#     instead of repeating. It will still work most of the time since wifi usually
+#     only loses <1% of messages (aka packet loss). If you go very far from the router
+#     this will get worse and you'll notice the ball getting lost.
+#     Now, lose half the handovers on purpose. In while_we_are_giving_it(), just
 #     after the listen, add:
 #
 #         if random.random() < 0.5:
 #             return
 #
-#     Nothing changes -- the rally carries on as if the losses never happened,
-#     because the "give" is simply said again next time round. NOW make it send
-#     the give once and set state to wait_kind straight afterwards, instead of
-#     repeating. Play again. About half of your shots vanish over the top and a
-#     new ball has to be served. That is why it repeats.
-#   - Set forget_after to 1.0, and delete the "wait" send from
-#     while_we_are_waiting(). Whichever board is holding the ball now decides
-#     its partner has vanished in the middle of a rally, and drops back to
-#     "Tap to pair". Put the send back, leaving forget_after at 1.0: it is fine
-#     again, even though the waiting board still has nothing to report. Why?
+#     Now about half of your shots vanish over the top and a
+#     new ball has to be served after a few seconds. That is why it repeats.
 #
-# And the mischief:
+# And a bit of mischief:
 #
+#   - Change their_y from -ball_size to 20, so the ball arrives most of the way down
+#     their panel. Play a rally each way. Is it still a fair game?
 #   - Never give the ball away: when it goes over the top, keep saying "have"
 #     instead. Your partner's panel stays empty forever -- and they will not
 #     serve a new one either, because your "have" keeps telling them the ball
 #     is alive and well.
-#   - Give the ball away with a speed of 5 instead of the real one. Time how
-#     long your partner lasts.
-#   - Give it to them at their_y = 28, right on top of their own paddle. Their
-#     board believes every word. What would it have to check to catch you?
+#   - Give the ball away with a speed of 3 instead of the real one.
+#   - How could your partner detect any of the above and disqualify you?
