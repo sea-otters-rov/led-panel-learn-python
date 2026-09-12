@@ -356,7 +356,23 @@ serial number. These are the invariant strings, two per board:
 
 `sync.py` — the Ctrl+S path — takes the label from the `LEARNPY_BOARD`
 environment variable instead of an argument, so the VS Code task string never
-changes. Unset with two boards attached, it refuses.
+changes. Unset with two boards attached, it refuses **when it has to go
+looking**; with a warm `tools\.circuitpy` cache it still uses the remembered
+drive, so set the variable rather than relying on the refusal.
+
+**`LEARNPY_BOARD=all` saves to every attached board**, which is what testing
+both ends of a Part 2 lesson wants. Measured 2026-09-12, nine interleaved saves
+each: one board 425 ms median, all boards **577 ms** — the boards are written
+in parallel, so the second costs ~150 ms rather than another full ~400 ms
+flash write. It is the one mode that rescans the drives every save instead of
+caching them, because a remembered list would silently skip a board plugged in
+later, and a save reaching one board out of two is the exact failure the
+refusal exists to prevent.
+
+Keep it opt-in. Two boards are usually two people, and `LEARNPY_BOARD=A` is
+still what you want when deliberately running different lessons on each board —
+which is also how a save stays staggered, so one board can re-pair from the
+other instead of both needing a knock.
 
 **`watch_both.py` is the instrument that makes Part 2 debuggable.** "The serial
 port is exclusive" is about one port; two boards have two, so one process can
