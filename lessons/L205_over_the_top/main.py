@@ -118,7 +118,7 @@ def steer_the_paddle(tilt_x):
         paddle.x = 0
 
 
-def partner_says(kinds):
+def get_partner_msg(kinds):
     """The newest message from our partner, if it is one of these kinds.
 
     It asks for EVERY kind, not just the ones we want, because anything at all
@@ -126,14 +126,12 @@ def partner_says(kinds):
     state cares about and a partner sitting quietly in "wait" would be declared
     gone, while they were talking to us the whole time.
     """
-    msg = interactions.get_newest_message([have_kind, give_kind, wait_kind])
+    msg = interactions.get_newest_message(kinds)
     if msg is None or msg[1] != partner_id:
         return None
 
     screen.timer_reset("partner")
-    if msg[0] in kinds:
-        return msg
-    return None
+    return msg
 
 
 def move_the_ball():
@@ -168,18 +166,12 @@ def paddle_caught_it():
 
 def while_we_have_it(tilt_x):
     """The ball is ours: nobody else moves it, draws it, or decides about it."""
-    global state, ball_y, speed_y
+    global state, ball_y, speed_x, speed_y
 
-    # Listen. The only thing that changes anything here is our partner ALSO
-    # saying they have it.
-    msg = partner_says([have_kind])
-    if msg is not None and len(msg) == 5 and int(my_id) > int(partner_id):
-        # We both think we have it. It should never happen, but if it does,
-        # both boards follow the same rule: the lower id keeps it.
-        state = wait_kind
-        ball.hidden = True
-        print("we both had it -- letting them keep it")
-        return
+    # Listen, even though nothing our partner says changes what we do while the
+    # ball is ours. Hearing ANYTHING from them is what keeps the "partner" clock
+    # alive -- so we ask, and act on none of it.
+    get_partner_msg([])
 
     # Say where the ball is and how we are tilting.
     network.send(partner_id, f"{have_kind} {my_id} {ball_x} {ball_y} {tilt_x}")
@@ -207,7 +199,7 @@ def while_we_are_giving_it():
     global state
 
     # Listen for the one message that means it arrived.
-    msg = partner_says([have_kind])
+    msg = get_partner_msg([have_kind])
     if msg is not None and len(msg) == 5:
         state = wait_kind
         print("they got it")
@@ -228,7 +220,7 @@ def while_we_are_giving_it():
 def while_we_are_waiting():
     """Nobody here has the ball: listen for it, and keep saying we are here."""
     # Listen for the ball arriving, or for our partner saying they still have it.
-    msg = partner_says([give_kind, have_kind])
+    msg = get_partner_msg([give_kind, have_kind])
 
     # Say we are waiting. Even with nothing to report, silence is how a board
     # decides its partner has gone.
@@ -271,7 +263,7 @@ while True:
     tilt_x, tilt_y, tilt_z = interactions.smoothed_tilt()
     steer_the_paddle(tilt_x)
 
-    # Exactly one of these runs each time round, and which one IS our state.
+    # Exactly one of these runs each time, depending on our state.
     # Each listens for the messages that matter to it, says what we are doing,
     # and updates whatever it is in charge of.
     if state == have_kind:
@@ -290,25 +282,53 @@ while True:
 
     screen.draw()
 
-# Try these:
-#   - Make while_we_are_giving_it() send the "give" once and go straight back
-#     to waiting, instead of repeating it. Play for a while. Every so often the ball goes
-#     over the top and simply never arrives. How often? (About as often as a
-#     message gets lost -- which is not often, but a game lasts a long time.)
-#   - Stop sending "wait" -- delete that send, so a waiting board says nothing.
-#     Keep a long rally going on one side. What happens after forget_after
-#     seconds, even though your partner is sitting right there?
-#   - Change the mirror to screen.WIDTH - 1 - ball_x. Hit the ball straight up
-#     near one edge and watch where it comes in on the other panel.
-#   - Set stall_after to 0.1. What goes wrong, and why does it depend on how
-#     long a "give" takes to be answered?
-#   - Both boards keep a ball_x and a ball_y. At any moment, only one board's
-#     numbers mean anything. Which one, and how does the other board know?
+# Try these -- each one changes something you can watch happen:
+#
+#   - Every serve is one of the same two angles. In serve(), pick the sideways
+#     speed at random instead: random.uniform(-0.9, 0.9). Now no two rallies
+#     start the same way.
+#   - Let the paddle aim. Where the ball lands on the paddle should decide where
+#     it goes: hit it with the left end and it should fly left, dead centre and
+#     it should come straight back. In while_we_have_it(), when the paddle
+#     catches it, work out how far the middle of the ball is from the middle of
+#     the paddle, and set speed_x from that.
+#   - Make a rally get harder. Multiply speed_x and speed_y by 1.05 every time
+#     the paddle catches it. How many hits before it is impossible?
+#   - Set ball_size to 8 and play a rally. Two things change: it is easier to
+#     hit, AND it arrives in a different place on your partner's panel. Which
+#     line decides the second one?
+#   - Break the mirror on purpose. In while_we_are_giving_it(), send ball_x
+#     instead of screen.WIDTH - ball_size - ball_x. Send the ball over close to
+#     one edge and watch which side it comes in on. Put it back.
+#   - Change their_y from 0 to 20, so the ball arrives most of the way down
+#     their panel. Play a rally each way. Is it still a fair game?
+#
+# Now break the rules and see what the messages are really for:
+#
+#   - Lose half the handovers on purpose. In while_we_are_giving_it(), just
+#     after the listen, add:
+#
+#         if random.random() < 0.5:
+#             return
+#
+#     Nothing changes -- the rally carries on as if the losses never happened,
+#     because the "give" is simply said again next time round. NOW make it send
+#     the give once and set state to wait_kind straight afterwards, instead of
+#     repeating. Play again. About half of your shots vanish over the top and a
+#     new ball has to be served. That is why it repeats.
+#   - Set forget_after to 1.0, and delete the "wait" send from
+#     while_we_are_waiting(). Whichever board is holding the ball now decides
+#     its partner has vanished in the middle of a rally, and drops back to
+#     "Tap to pair". Put the send back, leaving forget_after at 1.0: it is fine
+#     again, even though the waiting board still has nothing to report. Why?
 #
 # And the mischief:
 #
-#   - Send "have" every time, whatever is really going on. Your partner never
-#     serves and never gets the ball. Is there any way for them to tell you are
-#     lying?
-#   - When you give the ball away, give it a speed of 5 instead of the real one.
-#     Your partner's board believes you completely. Should it?
+#   - Never give the ball away: when it goes over the top, keep saying "have"
+#     instead. Your partner's panel stays empty forever -- and they will not
+#     serve a new one either, because your "have" keeps telling them the ball
+#     is alive and well.
+#   - Give the ball away with a speed of 5 instead of the real one. Time how
+#     long your partner lasts.
+#   - Give it to them at their_y = 28, right on top of their own paddle. Their
+#     board believes every word. What would it have to check to catch you?
