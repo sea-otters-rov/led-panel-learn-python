@@ -69,7 +69,6 @@ ball_x = 0.0
 ball_y = 0.0
 speed_x = 0.0
 speed_y = 0.0
-give_message = ""  # what we keep sending while we hand the ball over
 
 # Two clocks, each with its own name: how long since anybody had the ball, and
 # how long since our partner said anything at all.
@@ -90,18 +89,8 @@ def serve():
 
 
 def give_away():
-    # The ball is going over the top. Work out where it lands on THEIR panel.
-    #
-    # With the tops touching, their panel is turned right round compared to
-    # ours. So left and right swap, and both speeds flip: a ball going up and
-    # to the left here is going down and to the right there.
-    #
-    # It is WIDTH - ball_size - x, not WIDTH - 1 - x. The ball is ball_size
-    # wide, and x is its left edge, so the mirror has to leave room for it.
-    global state, give_message
-    their_x = screen.WIDTH - ball_size - ball_x
-    their_y = -ball_y  # however far past our top edge, that far into theirs
-    give_message = f"{give_kind} {my_id} {their_x} {their_y} {-speed_x} {-speed_y}"
+    # The ball is going over the top.
+    global state
     state = give_kind
     ball.hidden = True
     print("giving it to them")
@@ -120,119 +109,190 @@ def take(msg):
     print("got it")
 
 
-while True:
-    # Steer the paddle, exactly as in lesson 109.
-    tilt_x, tilt_y, tilt_z = interactions.smoothed_tilt()
+def steer_the_paddle(tilt_x):
+    # Exactly as in lesson 109.
     paddle.x = int(tilt_x * screen_center_x) + screen_center_x - paddle_width // 2
     if paddle.x > paddle_max_x:
         paddle.x = paddle_max_x
     elif paddle.x < 0:
         paddle.x = 0
 
-    # --- listen -------------------------------------------------------------
-    msg = interactions.get_newest_message([have_kind, give_kind, wait_kind])
-    if msg is not None and msg[1] == partner_id:
-        screen.timer_reset("partner")
-        kind = msg[0]
 
-        if kind == give_kind and len(msg) == 6 and state != have_kind:
-            # They are giving us the ball, and we do not have one. Take it.
-            # (If we already have it, this is them repeating a "give" we have
-            # already taken -- they just have not heard our "have" yet.)
+def partner_says(kinds):
+    """The newest message from our partner, if it is one of these kinds.
+
+    It asks for EVERY kind, not just the ones we want, because anything at all
+    from our partner means they are still there. Ask only for the kinds this
+    state cares about and a partner sitting quietly in "wait" would be declared
+    gone, while they were talking to us the whole time.
+    """
+    msg = interactions.get_newest_message([have_kind, give_kind, wait_kind])
+    if msg is None or msg[1] != partner_id:
+        return None
+
+    screen.timer_reset("partner")
+    if msg[0] in kinds:
+        return msg
+    return None
+
+
+def move_the_ball():
+    # One step, then bounce off the side walls the way lesson 106 does it.
+    global ball_x, ball_y, speed_x, speed_y
+    ball_x = ball_x + speed_x
+    ball_y = ball_y + speed_y
+
+    if ball_x > ball_max_x:
+        ball_x = ball_max_x - (ball_x - ball_max_x)
+        speed_x = -speed_x
+    elif ball_x < 0:
+        ball_x = -ball_x
+        speed_x = -speed_x
+
+    ball.x = int(ball_x)
+    ball.y = int(ball_y)
+
+
+def paddle_caught_it():
+    # The way lesson 109 tests a catch, plus one more question: was the ball
+    # still above the paddle a moment ago? Without it, a ball that has already
+    # slipped past can drift sideways into the paddle and be caught from behind.
+    return (
+        speed_y > 0
+        and ball_y + ball_size >= paddle_y
+        and ball_y + ball_size - speed_y <= paddle_y
+        and ball_x + ball_size >= paddle.x
+        and ball_x <= paddle.x + paddle_width
+    )
+
+
+def while_we_have_it(tilt_x):
+    """The ball is ours: nobody else moves it, draws it, or decides about it."""
+    global state, ball_y, speed_y
+
+    # Listen. The only thing that changes anything here is our partner ALSO
+    # saying they have it.
+    msg = partner_says([have_kind])
+    if msg is not None and len(msg) == 5 and int(my_id) > int(partner_id):
+        # We both think we have it. It should never happen, but if it does,
+        # both boards follow the same rule: the lower id keeps it.
+        state = wait_kind
+        ball.hidden = True
+        print("we both had it -- letting them keep it")
+        return
+
+    # Say where the ball is and how we are tilting.
+    network.send(partner_id, f"{have_kind} {my_id} {ball_x} {ball_y} {tilt_x}")
+
+    # Update: move it, bounce it, and see where that leaves us.
+    screen.timer_reset("ball")
+    move_the_ball()
+
+    if paddle_caught_it():
+        ball_y = paddle_y - ball_size - (ball_y + ball_size - paddle_y)
+        speed_y = -speed_y
+    elif ball_y > screen.HEIGHT:
+        # Missed it. Nobody has the ball now, so after a moment one of us
+        # serves a new one.
+        state = wait_kind
+        ball.hidden = True
+        print("missed")
+    elif ball_y < 0:
+        # Over the top: it is theirs now.
+        give_away()
+
+
+def while_we_are_giving_it():
+    """The ball has gone over the top. Say so until they say they have it."""
+    global state
+
+    # Listen for the one message that means it arrived.
+    msg = partner_says([have_kind])
+    if msg is not None and len(msg) == 5:
+        state = wait_kind
+        print("they got it")
+        return
+
+    # Say it again. Their panel is turned right round from ours -- the tops are
+    # touching -- so left and right swap, and both speeds flip: a ball going up
+    # and to the left here is going down and to the right there.
+    their_x = screen.WIDTH - ball_size - ball_x
+    their_y = 0  # always start them at the top
+    network.send(
+        partner_id, f"{give_kind} {my_id} {their_x} {their_y} {-speed_x} {-speed_y}"
+    )
+
+    # Nothing to update. The ball is not ours to move any more.
+
+
+def while_we_are_waiting():
+    """Nobody here has the ball: listen for it, and keep saying we are here."""
+    # Listen for the ball arriving, or for our partner saying they still have it.
+    msg = partner_says([give_kind, have_kind])
+
+    # Say we are waiting. Even with nothing to report, silence is how a board
+    # decides its partner has gone.
+    network.send(partner_id, f"{wait_kind} {my_id}")
+
+    # Update.
+    if msg is not None:
+        if msg[0] == give_kind and len(msg) == 6:
             take(msg)
             screen.timer_reset("ball")
+        elif msg[0] == have_kind and len(msg) == 5:
+            screen.timer_reset("ball")  # they have it, so the ball still exists
 
-        elif kind == have_kind and len(msg) == 5:
-            screen.timer_reset("ball")
-            if state == give_kind:
-                # They have it. That is the answer we were waiting for, so we
-                # can stop saying "give".
-                state = wait_kind
-                print("they got it")
-            elif state == have_kind and int(my_id) > int(partner_id):
-                # We BOTH think we have it. It should never happen, but if it
-                # does, both boards follow the same rule: the lower id keeps it.
-                state = wait_kind
-                ball.hidden = True
-                print("we both had it -- letting them keep it")
 
-    # --- move the ball, if it is ours ---------------------------------------
-    if state == have_kind:
-        screen.timer_reset("ball")
-        ball_x = ball_x + speed_x
-        ball_y = ball_y + speed_y
-
-        # Side walls, bounced the way lesson 106 does it.
-        if ball_x > ball_max_x:
-            ball_x = ball_max_x - (ball_x - ball_max_x)
-            speed_x = -speed_x
-        elif ball_x < 0:
-            ball_x = -ball_x
-            speed_x = -speed_x
-
-        # The paddle, tested the way lesson 109 tests a catch -- plus one more
-        # question: was the ball still above the paddle a moment ago? Without
-        # it, a ball that has already slipped past can drift sideways into the
-        # paddle and get "caught" from behind.
-        on_paddle = (
-            speed_y > 0
-            and ball_y + ball_size >= paddle_y
-            and ball_y + ball_size - speed_y <= paddle_y
-            and ball_x + ball_size >= paddle.x
-            and ball_x <= paddle.x + paddle_width
-        )
-
-        if on_paddle:
-            ball_y = paddle_y - ball_size - (ball_y + ball_size - paddle_y)
-            speed_y = -speed_y
-        elif ball_y > screen.HEIGHT:
-            # Missed it. Nobody has the ball now, so after a moment one of us
-            # serves a new one.
-            state = wait_kind
-            ball.hidden = True
-            print("missed")
-        elif ball_y < 0:
-            # Over the top: it is theirs now.
-            give_away()
-
-        ball.x = int(ball_x)
-        ball.y = int(ball_y)
-
-    # --- say what we are doing, every single time ---------------------------
-    if state == have_kind:
-        network.send(partner_id, f"{have_kind} {my_id} {ball_x} {ball_y} {tilt_x}")
-    elif state == give_kind:
-        network.send(partner_id, give_message)
-    else:
-        network.send(partner_id, f"{wait_kind} {my_id}")
-
-    # --- when the ball goes missing -------------------------------------------
+def ball_has_gone_missing():
     # Nobody has had the ball for a while: it was missed, or a "give" never got
     # through, or someone saved in the middle of a rally and took it with them.
     # Both boards follow the same rule, so they never both serve: the one with
     # the lower id does.
-    if state != have_kind and screen.timer_elapsed("ball") > stall_after:
-        if state == give_kind:
-            print("they never took it")
-        state = wait_kind
-        if int(my_id) < int(partner_id):
-            serve()
-        screen.timer_reset("ball")
+    global state
+    if state == give_kind:
+        print("they never took it")
+    state = wait_kind
+    if int(my_id) < int(partner_id):
+        serve()
+    screen.timer_reset("ball")
 
-    # Our partner has gone quiet for longer than a save could explain.
+
+def lost_our_partner():
+    global state, partner_id
+    print(f"lost board {partner_id}")
+    state = wait_kind
+    ball.hidden = True
+    partner_id = interactions.tap_to_pair([have_kind, give_kind, wait_kind])
+    screen.timer_reset("partner")
+    screen.timer_reset("ball")
+
+
+while True:
+    tilt_x, tilt_y, tilt_z = interactions.smoothed_tilt()
+    steer_the_paddle(tilt_x)
+
+    # Exactly one of these runs each time round, and which one IS our state.
+    # Each listens for the messages that matter to it, says what we are doing,
+    # and updates whatever it is in charge of.
+    if state == have_kind:
+        while_we_have_it(tilt_x)
+    elif state == give_kind:
+        while_we_are_giving_it()
+    else:
+        while_we_are_waiting()
+
+    # Two things worth checking whatever state we are in.
+    if state != have_kind and screen.timer_elapsed("ball") > stall_after:
+        ball_has_gone_missing()
+
     if screen.timer_elapsed("partner") > forget_after:
-        print(f"lost board {partner_id}")
-        state = wait_kind
-        ball.hidden = True
-        partner_id = interactions.tap_to_pair([have_kind, give_kind, wait_kind])
-        screen.timer_reset("partner")
-        screen.timer_reset("ball")
+        lost_our_partner()
 
     screen.draw()
 
 # Try these:
-#   - Make give_away() send the "give" once and go straight back to waiting,
-#     instead of repeating it. Play for a while. Every so often the ball goes
+#   - Make while_we_are_giving_it() send the "give" once and go straight back
+#     to waiting, instead of repeating it. Play for a while. Every so often the ball goes
 #     over the top and simply never arrives. How often? (About as often as a
 #     message gets lost -- which is not often, but a game lasts a long time.)
 #   - Stop sending "wait" -- delete that send, so a waiting board says nothing.

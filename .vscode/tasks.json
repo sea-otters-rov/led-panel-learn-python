@@ -79,6 +79,15 @@
       "presentation": { "reveal": "always", "panel": "dedicated", "focus": true }
     },
     {
+      "label": "Board: check WiFi firmware version",
+      "detail": "Report the ESP32 co-processor's nina-fw version. Check this first if sockets fail with BrokenPipeError.",
+      "type": "process",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": ["${workspaceFolder}\\tools\\check_firmware.py"],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
       "label": "Board: set up this machine",
       "detail": "First-run setup: extensions, .venv, stubs, libraries.",
       "type": "process",

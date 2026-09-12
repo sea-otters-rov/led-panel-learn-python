@@ -148,6 +148,9 @@ while True:
 
         elif screen.timer_elapsed() < 1:
             tap_sign.color = colors.dim(colors.PURPLE, 1 - screen.timer_elapsed())
+        else:
+            tap_sign.text = "Tap to pair"
+            tap_sign.color = colors.AMBER
 
         # Pairing can happen two ways...
         # Tap-to-pair:  A tap message received soon after a tap pairs to the sender.

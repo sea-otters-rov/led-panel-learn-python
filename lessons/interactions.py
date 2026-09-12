@@ -75,7 +75,7 @@ def tap_to_pair(resume_kinds: list[str], tap_force=1.4, pair_window=0.3) -> str:
 
     Two ways to get one, the same two as 204:
 
-      tap     both boards knocked at nearly the same moment
+      tap     both boards tapped at nearly the same moment
       resume  a message arrives from a board that still thinks we are its
               partner. resume_kinds are the kinds your lesson sends straight
               to its partner -- never to everyone -- so only a real partner
@@ -86,16 +86,19 @@ def tap_to_pair(resume_kinds: list[str], tap_force=1.4, pair_window=0.3) -> str:
     """
     sign = screen.text("Tap to pair", colors.AMBER, 1, 3, font=screen.Fonts.SMALL)
     screen.draw()
-    tapped = False
 
     while True:
         if screen.force() > tap_force:
             network.send_to_everyone(f"tap {network.my_id}")
-            screen.timer_reset("tap")
-            tapped = True
+            screen.timer_reset("tap-to-pair")
             sign.text = "tapped"
-        elif screen.timer_elapsed("tap") > 1:
+        elif screen.timer_elapsed("tap-to-pair") < pair_window:
+            sign.color = colors.dim(
+                colors.PURPLE, 1 - screen.timer_elapsed("tap-to-pair") / pair_window
+            )
+        else:
             sign.text = "Tap to pair"
+            sign.color = colors.AMBER
 
         for msg_text in network.receive_all():
             msg_parts = msg_text.split(" ")
@@ -105,8 +108,7 @@ def tap_to_pair(resume_kinds: list[str], tap_force=1.4, pair_window=0.3) -> str:
             tapped_together = (
                 msg_parts[0] == "tap"
                 and len(msg_parts) == 2
-                and tapped
-                and screen.timer_elapsed("tap") < pair_window
+                and screen.timer_elapsed("tap-to-pair") < pair_window
             )
             if tapped_together or msg_parts[0] in resume_kinds:
                 partner_id = msg_parts[1]
