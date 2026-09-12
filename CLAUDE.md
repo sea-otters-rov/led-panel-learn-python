@@ -47,6 +47,38 @@ working *on* the project.
   This also corrects an earlier note here claiming ~1 send in 10 fails. That was
   socket-allocation churn, not the network. There is no meaningful UDP loss.
 
+- **A message costs ~4 ms even when it shares a trip with another, and ~13 ms
+  when it does not.** Measured 2026-09-12 on both boards,
+  `lessons\spike_handoff\multiball.py`, six ways of saying the same thing,
+  4 modes x 6 s x 3 rounds interleaved, whole-frame cost including receive and
+  draw:
+
+        1 message, 1 send                       18.3 ms/frame   54 fps
+        2 messages, 2 sends                     31.7            32
+        2 messages, 1 send (a list)             22.5            44
+        5 messages, 1 send (a list)             35.7            28
+        1 message with 2 balls' fields in it    19.0            52
+
+  So the expense tracks **the number of messages**, not the number of trips:
+  batching saves ~9 ms of the ~13 ms a separate send costs, but the extra
+  message still costs ~4 ms. `network.send()` takes a list for this reason.
+
+  **It is the radio, not Python.** Pre-building the strings outside the loop
+  changed 2-in-a-trip from 22.5 to 21.4 and 1-in-a-trip not at all (18.3 both
+  ways), so ~3 ms of the ~4 ms is SPI moving the payload and no string trick
+  will get it back.
+
+  What that decides: **two balls a frame is affordable and five is not.** A
+  design that must report N things every frame runs out at three or four; one
+  that reports a different thing each frame -- round robin -- costs a flat
+  18.3 ms however many there are, at the price of each thing updating at 1/N
+  of the frame rate. 27 Hz per ball at two balls is plenty for something a
+  partner is only watching.
+
+  Loss was **zero in every mode**, including 5 messages a frame from both
+  boards at once, and `heard/frame` matched `sent/frame` throughout. The radio
+  was never the bottleneck; its own send path is.
+
 - **UDP receive needs the raw API; the socketpool cannot do it.**
   `pool.socket(...)` + `bind()` + `recv_into()` hears nothing at all. This works:
 

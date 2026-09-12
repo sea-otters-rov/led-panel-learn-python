@@ -12,7 +12,7 @@ board is the only one that knows: your partner cannot see your panel, your
 paddle, or the ball at that moment. So the board that loses the point is the
 one that announces it. That is a strange rule the first time you read it --
 the loser reports -- but it is the only board with the evidence, and it is not
-a rule anybody is tempted to break in their own favour.
+a rule anybody is tempted to break in their own favor.
 
 One new message:
 
@@ -54,7 +54,7 @@ forget_after = 15.0  # partner silent this long -> they have gone
 my_color = colors.JADE
 their_color = colors.MAGENTA
 
-my_id = interactions.join_wifi()
+my_id = interactions.join_wifi(show_id=False)
 pairing_kinds = [have_kind, give_kind, wait_kind, point_kind]
 partner_id = interactions.tap_to_pair(pairing_kinds)
 
@@ -71,8 +71,8 @@ ball.hidden = True
 # own paddle.
 my_score = 0
 their_score = 0
-my_sign = screen.text("0", my_color, 1, 3, font=screen.Fonts.SMALL)
-their_sign = screen.text("0", their_color, 60, 3, font=screen.Fonts.SMALL)
+my_score_text = screen.text("0", my_color, 1, 3, font=screen.Fonts.SMALL)
+their_score_text = screen.text("0", their_color, 60, 3, font=screen.Fonts.SMALL)
 
 state = wait_kind
 
@@ -86,12 +86,12 @@ screen.timer_reset("partner")
 
 
 def show_the_score():
-    my_sign.text = str(my_score)
-    their_sign.text = str(their_score)
+    my_score_text.text = str(my_score)
+    their_score_text.text = str(their_score)
     # Theirs is in the right-hand corner, so it has to move left as it grows:
     # a small letter is 4 pixels wide, and anything past the edge is simply
     # not drawn.
-    their_sign.x = screen.WIDTH - 4 * len(their_sign.text)
+    their_score_text.x = screen.WIDTH - 4 * len(their_score_text.text)
     print(f"me {my_score}, them {their_score}")
 
 
@@ -99,7 +99,7 @@ def serve():
     # A new ball in the middle of our panel, heading over the top to them.
     global state, ball_x, ball_y, speed_x, speed_y
     ball_x = (screen.WIDTH - ball_size) / 2
-    ball_y = (screen.HEIGHT - ball_size) / 2
+    ball_y = screen.HEIGHT - ball_size - paddle_height - 1
     speed_x = random.choice([-serve_speed_x, serve_speed_x])
     speed_y = -serve_speed_y
     state = have_kind
@@ -349,14 +349,8 @@ while True:
 
 # Try these:
 #
-#   - Play to five. Nothing in here ever ends a match, so add it: when a score
-#     reaches 5, stop serving and put something on the screen to say who won.
-#   - Make the point message say "add one" instead of saying both scores: send
-#     "point <my id> 1", and have the board that receives it do
-#     their_score + 1. Then put back the deliberate losses from the last
-#     lesson. Sooner or later one miss gets counted twice, and the two panels
-#     disagree for the rest of the match. That is the difference between
-#     saying what IS and saying what CHANGED.
+#   - Play to ten. Nothing in here ever ends a match, so add it: when a score
+#     reaches 10, stop serving and put something on the screen to say who won.
 #   - In while_we_are_reporting_a_point(), stop repeating: send the point once
 #     and go straight to wait_kind. Now a single lost message is a point
 #     nobody scored -- and again the panels disagree, with nothing on either

@@ -6,6 +6,7 @@
     network.my_id                        # the number that means THIS board
     network.send_to_everyone("hello")    # every board hears it
     network.send(their_id, "hi")         # just that one board hears it
+    network.send(their_id, [one, two])   # several messages, one trip
     message = network.receive()          # None when nothing has arrived
 
 Every board has an **id**: a small number that you say out loud and type in.
@@ -15,6 +16,12 @@ ever types a full address. Two boards can never end up with the same id, so
 
 Messages are plain text. Whatever you send is exactly what comes out the other
 end, so it is up to your lesson to decide what the words mean.
+
+**Sending is the expensive part of a frame, and one trip costs about the same
+whatever is in it.** So send() also takes a list of messages and puts them all
+in one trip. They arrive as ordinary separate messages -- receive() hands them
+back one at a time, exactly as if they had been sent one at a time -- so
+nothing that reads messages has to know it happened.
 """
 
 import time
@@ -142,22 +149,55 @@ def firmware_version() -> str:
     return str(_esp.firmware_version, "utf-8").strip("\x00")
 
 
-def send(board_id, message: str) -> bool:
-    """Send one message to one board, by its id. True if it went out.
+def send(board_id, message) -> bool:
+    """Send a message to one board, by its id. True if it went out.
 
     Only that board hears it. Everybody else on the network carries on
     unbothered, which is why a game uses this and not send_to_everyone().
+
+    `message` is one string, or a LIST of strings to send in a single trip.
+    A trip costs about the same whatever is in it, so sending three messages
+    one at a time costs about three times what sending all three together
+    does. They still arrive as three separate messages.
     """
     return _send_to(address_of(board_id), message)
 
 
-def send_to_everyone(message: str) -> bool:
-    """Send one message to every board on the network.
+def send_to_everyone(message) -> bool:
+    """Send a message, or a list of messages, to every board on the network.
 
     Everyone ELSE, that is: a board does not hear its own broadcast. If your
     own screen has to show what you just said, say it locally as well.
     """
     return _send_to(_everyone, message)
+
+
+def _for_the_wire(message) -> str:
+    """One string to send, whether a lesson passed one message or a list.
+
+    Messages are separated by line breaks -- the same mark receive() already
+    looks for when it takes them apart again. That is the whole trick: one
+    trip carrying five messages arrives as five perfectly ordinary messages,
+    and nothing that reads them needs to know or care that they travelled
+    together.
+    """
+    if isinstance(message, str):
+        messages = [message]
+    else:
+        messages = list(message)
+        if not messages:
+            raise ValueError("network: send() was given nothing to send")
+
+    for one in messages:
+        if not isinstance(one, str):
+            raise TypeError("network: a message must be a string")
+        if "\n" in one:
+            raise ValueError(
+                "network: a message cannot have a line break inside it -- that "
+                "is the mark that separates one message from the next"
+            )
+
+    return "\n".join(messages) + "\n"
 
 
 def _send_to(address: str, message: str) -> bool:
@@ -175,10 +215,7 @@ def _send_to(address: str, message: str) -> bool:
     if _esp is None:
         raise RuntimeError("network: call start() first")
 
-    if not isinstance(message, str):
-        raise TypeError("network: message must be a string")
-
-    data = (message + "\n").encode()
+    data = _for_the_wire(message).encode()
     if _talk is None:
         _talk = _esp.get_socket()
 

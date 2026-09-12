@@ -56,18 +56,36 @@ def smoothed_tilt():
     return adjusted_tilt
 
 
+def get_messages(kinds: list[str]) -> list:
+    """Every waiting message of one of these kinds, oldest first.
+
+    Each one comes back already split into its parts. Use this when more than
+    one message can matter in the same loop -- several balls, say. Taking them
+    in the order they arrived is what makes it come out right: a later message
+    about the same thing simply overwrites what an earlier one said.
+    """
+    found = []
+    for msg_text in network.receive_all():
+        msg_parts = msg_text.split(" ")
+        if msg_parts[0] in kinds:
+            found.append(msg_parts)
+    return found
+
+
 def get_newest_message(kinds: list[str]):
     """The newest waiting message of one of these kinds, split into its parts.
 
     The same as lessons 203 and 204, kept here now that every lesson needs it.
     None if nothing of those kinds has arrived.
+
+    Careful: this keeps only ONE message, so if two that you care about arrive
+    in the same loop, the first is thrown away. That is fine when a message is
+    the whole of what your board knows -- a newer tilt makes an older one
+    worthless. It is not fine when the messages are about different things.
+    Use get_messages() for that.
     """
-    newest_msg = None
-    for msg_text in network.receive_all():
-        msg_parts = msg_text.split(" ")
-        if msg_parts[0] in kinds:
-            newest_msg = msg_parts
-    return newest_msg
+    found = get_messages(kinds)
+    return found[-1] if found else None
 
 
 def tap_to_pair(resume_kinds: list[str], tap_force=1.4, pair_window=0.3) -> str:
