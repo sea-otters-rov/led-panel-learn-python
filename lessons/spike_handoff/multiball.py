@@ -18,8 +18,15 @@ so a slow patch of network cannot flatter one of them:
     two          2 sends/frame, one per ball      -- the obvious multi-ball code
     roundrobin   1 send/frame, alternating balls  -- each ball at half rate
     packed       1 send/frame, both balls in it   -- one message, fixed shape
-    batched      1 send/frame, 2 messages in it    -- network.send() takes a list
-    batched5     1 send/frame, 5 messages in it    -- does a bigger trip cost more?
+    batched      1 send/frame, 2 messages in it   -- network.send() takes a list
+    batched5     1 send/frame, 5 messages in it   -- does a bigger trip cost more?
+    batch2cheap  as `batched`, strings built once -- is the cost Python or SPI?
+    onecheap     as `one`, string built once      -- the floor
+
+`modes` picks which of these actually run; it was edited between runs rather
+than running all of them every time, because each mode costs
+seconds_per_mode x rounds. The two `cheap` modes answered the last question
+(it is SPI) and are kept for the next time that doubt comes up.
 
 What to read off it:
 

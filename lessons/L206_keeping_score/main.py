@@ -104,8 +104,8 @@ class Paddle:
         # past can drift sideways into the paddle and be caught from behind.
         return (
             ball.speed_y > 0
-            and ball.y + ball_size >= paddle.shape.y
-            and ball.y + ball_size - ball.speed_y <= paddle.shape.y
+            and ball.y + ball_size >= self.shape.y
+            and ball.y + ball_size - ball.speed_y <= self.shape.y
             and ball.x + ball_size >= self.shape.x
             and ball.x <= self.shape.x + self.width
         )
@@ -299,10 +299,13 @@ def what_we_have_to_say(tilt_x):
                 f"{over_kind} {my_id} {ball.number} {x} {y} {speed_x} {speed_y}"
             )
         elif ball.state == lost_kind:
-            # This one was served onto their panel already, so it goes as it is.
+            # We served it on our own panel, so it has to be turned round for
+            # them exactly like a ball going over the top -- which is what puts
+            # it at the top of their panel, falling towards their paddle.
+            x, y, speed_x, speed_y = ball.on_their_panel()
             saying.append(
                 f"{lost_kind} {my_id} {ball.number} {their_score}"
-                f" {ball.x} {ball.y} {ball.speed_x} {ball.speed_y}"
+                f" {x} {y} {speed_x} {speed_y}"
             )
 
     if not saying:
