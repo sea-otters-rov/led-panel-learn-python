@@ -8,8 +8,9 @@ maintains the lessons, not for students.
 is now a record — where the two disagreed, the lessons won and this file was
 corrected.
 
-**Part 2 — networked multiplayer — is designed but not written.** The plumbing
-(`network.py`, `font.py`) is built and verified; lessons 201–207 are not. See
+**Part 2 — networked multiplayer — is under way.** The plumbing (`network.py`,
+`font.py`) is built and verified, and 201–206 are written and verified on
+hardware; 207 is not. See
 [Part 2: two panels](#part-2-two-panels) at the end.
 
 Constraints this plan is held to, from `CLAUDE.md` and the brief:
@@ -547,7 +548,7 @@ boards disagree. That is the honest content of lesson 207.
 | 203 | Several numbers in one message, and checking one before trusting it | `.split()`, which returns a list they know from L107. **Written** |
 | 204 | Knock two boards together and they pair up | Two events close in time are one event. No typed id, no dict. **Written** |
 | 205 | **The ball crosses between panels** | Ownership and handoff: say "give" until they say "have". **Written** |
-| 206 | Both panels agree on the score | One side is the authority; the other is told |
+| 206 | Both panels agree on the score | The board that misses is the one that says so; a message that states a value, not a change. **Written** |
 | 207 | The serve, and the finished game | Protocol, and what to do when two boards disagree |
 
 Roughly 4–5 hours. It is a genuine Part 2, not an extension: it widens the
@@ -865,6 +866,7 @@ Two things found writing it:
   believe what you are told, with the score as the obvious thing to cheat at.
   205 still ignores malformed messages by kind and length; it trusts the
   numbers inside a `give`, and its last try-these asks whether it should.
+  **Superseded: it moved again, to 207.** See the 206 section below.
 
 **A pairing cannot be remembered across a reboot.** Tested on hardware
 2026-09-08: board-side code cannot write the board's filesystem at all
@@ -891,3 +893,66 @@ Also unresolved:
 - Six boards all broadcasting at frame rate is ~180 packets/sec, and each board
   pays to parse all of them. Unicast-after-pairing is the fix, but the limit is
   worth measuring before designing a six-player game around it.
+
+### Lesson 206, written and verified 2026-09-12
+
+`L206_keeping_score`. 205's game, plus the first thing the two boards have to
+agree about that neither of them can see. One new message and one new state:
+
+        point <id> <your score> <my score>   I missed. Here are both scores.
+
+**The loser reports.** When the ball goes past a paddle, that board is the only
+one that can possibly know -- its partner cannot see its panel, its paddle, or
+the ball. So the board that loses the point announces it, which is the odd-
+sounding half of the design and the sound one: it is the only board with the
+evidence, and it is not a rule anybody is tempted to break in their own favour.
+The board that wins simply believes it, and serves.
+
+**The message states a value, never a change**, and that is the lesson. It is
+repeated until acknowledged, exactly like 205's `give`, and the acknowledgement
+is the partner's serve. A repeated "add one to your score" would score the
+point twice; a repeated "your score is 4" is still true however many times it
+arrives. The try-these makes them build the broken version and watch a miss get
+counted twice.
+
+Scores are written from the RECEIVER's side -- yours first, mine second -- the
+same convention `give` already uses when it converts the ball's position to the
+partner's panel before sending it.
+
+**Four states now**: `have`, `give`, `wait`, `point`, still one function each
+and still exactly one running per frame. The stall timer skips the `point`
+state, since nobody is meant to have the ball while a point is being reported;
+a partner who dies mid-report is caught by `forget_after` instead.
+
+Verified on both boards, paddles untouched so every ball scores:
+
+        24 points, both panels agreed on every one, 0 disagreements
+        miss -> partner's serve arriving back        ~50 ms, no repeats needed
+        24 handoffs, 0 stalls, 0 doubled
+        resume after a staggered save: both boards, scores restart at 0-0
+
+**A board that saves loses its scores, and the next point resets both.** The
+rebooted board comes back 0-0 while its partner still holds 24-0; they disagree
+until somebody misses, and then the reporter's numbers overwrite the partner's.
+That is the authority rule doing exactly what it says, and it self-heals within
+one point -- but it is worth knowing before a class plays a long match.
+
+Two things deliberately NOT done, both per the design conversation on
+2026-09-12:
+
+- **No validation.** `int(msg[2])` on a hostile message still crashes, which is
+  consistent with 202 crashing on purpose. 206's job is to create a number
+  worth lying about; 207 hardens. 206 ends by seeding the idea instead --
+  three ways to cheat, then "your partner hears where your ball is and how you
+  are tilting, every frame you have it. What could it work out for itself?"
+- **`while_we_are_waiting` still sends `wait` every frame, and `have` still
+  carries the ball position and `tilt x`.** Neither was trimmed, because 207
+  wants a board in `wait` to draw a faint ghost of its partner's paddle and
+  ball -- which is both the visual cheat-check and something to watch while
+  you do not have the ball. Everything that needs is already on the wire.
+
+One render bug found on hardware: the partner's score sat at a fixed x in the
+right-hand corner, so a two-digit score ran off the panel and was silently
+clipped. `their_sign.x = screen.WIDTH - 4 * len(their_sign.text)` right-aligns
+it -- the small font's cell is 4 px wide. The same species of bug as
+`max_x = WIDTH - size`, and it only showed up once a rally got past 9.

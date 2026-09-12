@@ -420,6 +420,11 @@ restarts. Say so when adding one, instead of letting the next prompt reveal it.
                                 L205   the ball is yours: position and speed
                                        already converted to YOUR panel
         wait <id>               L205   I am waiting for the ball
+        point <id> <your score> <my score>
+                                L206   I missed. Both scores as they now
+                                       stand, written from the RECEIVER's
+                                       side -- the same way `give` converts
+                                       coordinates before sending them
 
   Every kind from L204 on puts the sender's id second. `tap_to_pair()` relies
   on that: an unpaired board resumes with whoever sends it any of the lesson's
@@ -482,7 +487,8 @@ restarts. Say so when adding one, instead of letting the next prompt reveal it.
   Nothing installs ruff into `.venv`, deliberately: the extension carries its
   own binary, so `.venv` stays exactly what `setup.ps1` builds. A maintainer
   who wants the CLI can `pip install ruff` ad hoc -- just do not let a tool or
-  task come to depend on `.venv\Scriptsuff.exe`, which students will not have.
+  task come to depend on `.venv\Scripts
+uff.exe`, which students will not have.
 
   Verified 2026-09-08: all twelve Part 1 lessons were **already** conformant,
   so the house style and ruff's defaults agree and a student editing a lesson
@@ -765,9 +771,13 @@ catches all of them, `nan` included, because `nan` fails every comparison:
     -1.0 <= float('inf') <= 1.0   is False
     -1.0 <= float('nan') <= 1.0   is False
 
-Which is why validation lands with the ball in 205 and not earlier: a bounds
-check has a gameplay reason to exist there, and it is the same check that later
-catches a partner sending numbers their board never measured.
+**This lands in 207**, and it moved twice to get there — first planned for 205
+with the ball, then proposed for 206 with the score. Both were too early: 205
+is already the hardest lesson in the course, and 206's job is to create
+something worth lying about, not to defend against it. 207 is where a board
+checks what it is told, and the check is the range check — a bounds test has a
+gameplay reason to exist, and it is the same test that catches a partner
+sending numbers their board never measured.
 
 **`screen.delete_shape()` takes a shape out of the group; it does not free it.**
 Verified on hardware 2026-09-09 for `block`, `circle`, `burst` and `text` in
@@ -899,8 +909,18 @@ boards together and they pair, because both were knocked at the same moment —
 no typed id, and presence kept as one partner plus one timestamp. 205 is
 `L205_over_the_top`: the ball crosses between panels, handed over with `give`
 repeated until the partner says `have` — 60 handoffs verified both ways, none
-lost. 206 and 207 are not written. Validation (safe parse plus range check),
-planned for 205 below, is proposed for 206 instead — see the notes.
+lost. 206 is `L206_keeping_score`: the board that MISSES reports the point,
+because it is the only one that can see its own paddle, and its message says
+what both scores *are* rather than "add one" — which is what makes repeating it
+safe. Verified 2026-09-12, 24 points scored, both panels agreed on every one,
+point to partner's serve in ~50 ms. 207 is not written.
+
+**Validation is now postponed to 207**, not 206. `CLAUDE.md` first planned the
+safe parse and range check for 205, then the notes moved it to 206; it is 207's
+job. 206 instead *seeds* the idea — it is the first lesson with a number worth
+lying about, and it closes by pointing out that a board hears its partner's
+ball position and tilt every frame and could check them itself. Hardening is
+the whole of 207.
 
 **The roster lesson was designed, written, verified, and then cut** on
 2026-09-09. Nothing else in the arc needs a dict, knocking beats a roster for

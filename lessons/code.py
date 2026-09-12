@@ -5,4 +5,4 @@ That is the only reason to edit this file -- your actual work happens in the
 lesson file itself.
 """
 
-from L205_over_the_top import main
+from L206_keeping_score import main

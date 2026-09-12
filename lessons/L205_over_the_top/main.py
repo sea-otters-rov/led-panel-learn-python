@@ -221,20 +221,17 @@ def while_we_are_giving_it():
 
 def while_we_are_waiting():
     """Nobody here has the ball: listen for it, and keep saying we are here."""
-    # Listen for the ball arriving, or for our partner saying they still have it.
-    msg = get_partner_msg([give_kind, have_kind])
 
     # Say we are waiting. Even with nothing to report, silence is how a board
     # decides its partner has gone.
     network.send(partner_id, f"{wait_kind} {my_id}")
 
-    # Update.
+    # Listen for the ball arriving, or for our partner saying they still have it.
+    msg = get_partner_msg([give_kind, have_kind])
     if msg is not None:
+        screen.timer_reset("ball")
         if msg[0] == give_kind and len(msg) == 6:
             take(msg)
-            screen.timer_reset("ball")
-        elif msg[0] == have_kind and len(msg) == 5:
-            screen.timer_reset("ball")  # they have it, so the ball still exists
 
 
 def ball_has_gone_missing():
