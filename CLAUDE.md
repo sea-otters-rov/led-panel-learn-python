@@ -452,15 +452,22 @@ restarts. Say so when adding one, instead of letting the next prompt reveal it.
                                 L205   the ball is yours: position and speed
                                        already converted to YOUR panel
         wait <id>               L205   I am waiting for the ball
-        point <id> <your score> <my score>
-                                L206   I missed. Both scores as they now
-                                       stand, written from the RECEIVER's
-                                       side -- the same way `give` converts
-                                       coordinates before sending them
+        mine <id> <ball> <x> <y> <tilt x>
+                                L206   I have this ball
+        over <id> <ball> <x> <y> <sx> <sy>
+                                L206   this ball is going over to you
+        lost <id> <ball> <your score> <x> <y> <sx> <sy>
+                                L206   I missed it: your point, and the ball
+                                       back, served onto YOUR panel
 
   Every kind from L204 on puts the sender's id second. `tap_to_pair()` relies
   on that: an unpaired board resumes with whoever sends it any of the lesson's
   unicast kinds, and it reads the partner's id from the second word.
+
+  **206 could not reuse 205's `have` and `give`**, because a ball number had to
+  go into both. A new field is a new shape, so it is a new word -- which is the
+  rule working as intended rather than an inconvenience, and the lesson says so
+  out loud. `wait <id>` carried over unchanged because its shape did not move.
 
   204's signed tilt is called `move` for exactly this reason — 203 had already
   spent the word `tilt` on a different layout. Caught 2026-09-09, after both
@@ -941,11 +948,15 @@ boards together and they pair, because both were knocked at the same moment —
 no typed id, and presence kept as one partner plus one timestamp. 205 is
 `L205_over_the_top`: the ball crosses between panels, handed over with `give`
 repeated until the partner says `have` — 60 handoffs verified both ways, none
-lost. 206 is `L206_keeping_score`: the board that MISSES reports the point,
-because it is the only one that can see its own paddle, and its message says
-what both scores *are* rather than "add one" — which is what makes repeating it
-safe. Verified 2026-09-12, 24 points scored, both panels agreed on every one,
-point to partner's serve in ~50 ms. 207 is not written.
+lost. 206 is `L206_keeping_score`: **two balls, classes, and a score.** State
+moves off the board and onto the ball — each `Ball` owns its position, its
+speed, its state and its own named timer — because "what state is this board
+in?" stops having an answer once two balls are in play. The board that misses
+reports the point, since it is the only one that can see its own paddle, and
+**losing a point is a handoff**: `lost` carries the ball back AND the score, so
+the score inherits the repeat-until-answered machinery instead of needing its
+own. Verified 2026-09-12: 38 points, both panels agreed on every one, 0 balls
+lost, 0 partners dropped. 207 is not written.
 
 **Validation is now postponed to 207**, not 206. `CLAUDE.md` first planned the
 safe parse and range check for 205, then the notes moved it to 206; it is 207's

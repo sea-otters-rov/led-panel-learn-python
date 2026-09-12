@@ -548,7 +548,7 @@ boards disagree. That is the honest content of lesson 207.
 | 203 | Several numbers in one message, and checking one before trusting it | `.split()`, which returns a list they know from L107. **Written** |
 | 204 | Knock two boards together and they pair up | Two events close in time are one event. No typed id, no dict. **Written** |
 | 205 | **The ball crosses between panels** | Ownership and handoff: say "give" until they say "have". **Written** |
-| 206 | Both panels agree on the score | The board that misses is the one that says so; a message that states a value, not a change. **Written** |
+| 206 | Two balls at once, and a score both panels agree on | Classes: state belongs to the ball, not the board. The board that misses is the one that says so. **Written** |
 | 207 | The serve, and the finished game | Protocol, and what to do when two boards disagree |
 
 Roughly 4–5 hours. It is a genuine Part 2, not an extension: it widens the
@@ -896,63 +896,86 @@ Also unresolved:
 
 ### Lesson 206, written and verified 2026-09-12
 
-`L206_keeping_score`. 205's game, plus the first thing the two boards have to
-agree about that neither of them can see. One new message and one new state:
+`L206_keeping_score`. Two balls, two classes, and a score. It replaced a
+single-ball "just add a score" version written the same day -- that one worked
+(24 points, both panels agreeing) but the new idea was ~30 lines adrift in 330
+lines of 205, which is what prompted the rework.
 
-        point <id> <your score> <my score>   I missed. Here are both scores.
+**State moved off the board and onto the ball.** 205's `have`/`give`/`wait`
+worked only because there was exactly one ball; with two, "what state is this
+board in?" has no answer. Each `Ball` now owns its position, speed, state, its
+`screen` timer under its own name, and its shape. That is what buys the
+classes: without them a list of balls is parallel lists and index arithmetic,
+which the course avoids everywhere else. **A concept introduced because the
+program cannot be written well without it** -- the same reasoning that kept
+classes OUT of 205, where they were optional.
 
-**The loser reports.** When the ball goes past a paddle, that board is the only
-one that can possibly know -- its partner cannot see its panel, its paddle, or
-the ball. So the board that loses the point announces it, which is the odd-
-sounding half of the design and the sound one: it is the only board with the
-evidence, and it is not a rule anybody is tempted to break in their own favour.
-The board that wins simply believes it, and serves.
+`Paddle` is a class too, with `paddle.catches(ball)`. One paddle does not need
+a class, but that call site reads well enough to pay for itself, and holding
+its own width made two 205 try-theses (aiming off the paddle, random serve
+angle) cheap enough to promote into the lesson.
 
-**The message states a value, never a change**, and that is the lesson. It is
-repeated until acknowledged, exactly like 205's `give`, and the acknowledgement
-is the partner's serve. A repeated "add one to your score" would score the
-point twice; a repeated "your score is 4" is still true however many times it
-arrives. The try-these makes them build the broken version and watch a miss get
-counted twice.
+Four kinds, and three of them are new words:
 
-Scores are written from the RECEIVER's side -- yours first, mine second -- the
-same convention `give` already uses when it converts the ball's position to the
-partner's panel before sending it.
+        mine <id> <ball> <x> <y> <tilt x>
+        over <id> <ball> <x> <y> <sx> <sy>
+        lost <id> <ball> <your score> <x> <y> <sx> <sy>
+        wait <id>                            (unchanged from 205)
 
-**Four states now**: `have`, `give`, `wait`, `point`, still one function each
-and still exactly one running per frame. The stall timer skips the `point`
-state, since nobody is meant to have the ball while a point is being reported;
-a partner who dies mid-report is caught by `forget_after` instead.
+205's `have` and `give` could not be reused: a ball number is a new field, a
+new field is a new shape, and a new shape needs a new word. The lesson says
+that out loud rather than apologising for it.
 
-Verified on both boards, paddles untouched so every ball scores:
+**Losing a point is a handoff.** You missed, so the ball goes back AND they
+score, and `lost` does both. The score therefore inherits the proven
+repeat-until-`mine` machinery -- no separate acknowledgement to design, and a
+point cannot go missing on its own.
 
-        24 points, both panels agreed on every one, 0 disagreements
-        miss -> partner's serve arriving back        ~50 ms, no repeats needed
-        24 handoffs, 0 stalls, 0 doubled
-        resume after a staggered save: both boards, scores restart at 0-0
+**`lost` sends only ONE score: the receiver's.** A board's own score is never
+something it writes; it changes only when the partner admits a miss. One author
+per number. The earlier single-ball version sent both scores, which was safe
+only because one ball means one board can miss at a time -- with two balls,
+simultaneous misses have each board believe the other and discard its own
+point, and the panels disagree permanently. Latent bug in the old design,
+certain in the new one.
 
-**A board that saves loses its scores, and the next point resets both.** The
-rebooted board comes back 0-0 while its partner still holds 24-0; they disagree
-until somebody misses, and then the reporter's numbers overwrite the partner's.
-That is the authority rule doing exactly what it says, and it self-heals within
-one point -- but it is worth knowing before a class plays a long match.
+**One send a frame, whatever is going on.** `what_we_have_to_say()` builds a
+list and hands it to `network.send()` in one trip, which is why the two-ball
+version fits: ~22.5 ms/frame against ~31.7 for two separate sends. See the
+send-cost table in `CLAUDE.md`.
 
-Two things deliberately NOT done, both per the design conversation on
-2026-09-12:
+Verified on both boards, paddles untouched:
 
-- **No validation.** `int(msg[2])` on a hostile message still crashes, which is
-  consistent with 202 crashing on purpose. 206's job is to create a number
-  worth lying about; 207 hardens. 206 ends by seeding the idea instead --
-  three ways to cheat, then "your partner hears where your ball is and how you
-  are tilting, every frame you have it. What could it work out for itself?"
-- **`while_we_are_waiting` still sends `wait` every frame, and `have` still
-  carries the ball position and `tilt x`.** Neither was trimmed, because 207
-  wants a board in `wait` to draw a faint ghost of its partner's paddle and
-  ball -- which is both the visual cheat-check and something to watch while
-  you do not have the ball. Everything that needs is already on the wire.
+        38 points, both panels agreed on every one (A 20-19, B 19-20)
+        misses 18 / 20 -- symmetric
+        0 balls went missing, 0 partners dropped
+        one score print per board per point, no repeats
 
-One render bug found on hardware: the partner's score sat at a fixed x in the
-right-hand corner, so a two-digit score ran off the panel and was silently
-clipped. `their_sign.x = screen.WIDTH - 4 * len(their_sign.text)` right-aligns
-it -- the small font's cell is 4 px wide. The same species of bug as
-`max_x = WIDTH - size`, and it only showed up once a rally got past 9.
+Three bugs the first hardware run found, all in the game rules rather than the
+distributed part:
+
+- **The serve direction made the game unwinnable for one side.** A miss served
+  the ball onto the winner's panel *above their paddle heading away*, so the
+  winner never had to catch anything and every ball ended up falling towards
+  the loser, who missed again. 19-0, with the winner never once facing a ball.
+  A miss now drops it at the TOP of the winner's panel falling towards their
+  paddle -- the same way a ball arrives when it crosses over -- so winning a
+  point means having to play it.
+- **`show_the_score()` fired on every repeat of `lost`**, printing and
+  redrawing 2-4 times per point. Harmless (that is the whole point of stating a
+  value) but noisy in the console a student reads. It acts only on news now.
+- **Both balls were declared missing on the first frame**, because their clocks
+  started at module load while `tap_to_pair()` sat waiting for a knock. Every
+  clock is reset after pairing.
+
+Still deliberately NOT done: **no validation.** `int(msg[2])` on a hostile
+message still crashes, and with a ball number in every message a partner
+running a different ball count now crashes its neighbour -- which is exactly
+the "what if you and your partner don't have the same settings?" question 205
+already asks about `ball_size`. 207 hardens. 206 ends by pointing out that a
+board hears every ball's position and its partner's tilt on every frame, and
+asking what it could work out for itself.
+
+`while_we_are_waiting`'s every-frame `wait` survived the rework as the `wait`
+message, and `mine` still carries `tilt x`, so 207 still has everything it
+needs on the wire to draw a ghost of the partner's paddle and balls.
