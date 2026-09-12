@@ -20,25 +20,38 @@ global.
 
 The messages carry a ball number now, so each one says which ball it is about:
 
-    mine <my id> <ball> <x> <y> <tilt x>       I have this ball
+    mine <my id> <ball> <your score> <x> <y> <tilt x>
+                                               I have this ball, and by the
+                                               way, your score is this
     over <my id> <ball> <x> <y> <sx> <sy>      this ball is going over to you
-    lost <my id> <ball> <your score> <x> <y> <sx> <sy>
-                                               I missed it. Your point, and
-                                               here is the ball back.
     wait <my id>                               I have no balls at all
 
 New words, not last lesson's `have` and `give`, because they are not the same
 messages any more -- a word has to mean exactly one shape or it means nothing.
 
-**Losing a point is a handoff.** You missed, so the ball goes back to them AND
-they get a point, and `lost` does both in one message. That means it is repeated
-until they answer with `mine`, exactly like `over` -- no new machinery for the
-score, and a point can never go missing on its own.
+When you miss, the ball does NOT go anywhere: you keep it and serve it again
+from your own end, so you get to watch it come back and set off towards your
+partner. What crosses over is only the news that they scored.
 
-Notice `lost` sends only ONE score: yours. Your own score is never something you
-write -- it only ever changes when your partner admits they missed. Every number
-has exactly one board allowed to say it, and that is what makes it safe when you
-both miss at the same instant, which two balls makes a matter of time.
+**And that news is not a message of its own.** Look where the score lives: on
+`mine`, which you are already sending every frame anyway. That makes the two
+halves of this lesson behave completely differently, on purpose:
+
+    the ball    an EVENT. It happens once. If the message is lost the ball is
+                lost, so `over` is repeated until they answer with `mine`.
+    the score   a STATE. It is simply true. You say it on every message, so a
+                lost one costs nothing at all -- the next one says the same
+                thing, and any board that fell behind catches up by itself.
+
+A thing that is true does not need to be acknowledged. That is worth more than
+it looks: no acknowledgement means no waiting, no retrying, and no way for the
+two panels to end up permanently disagreeing.
+
+Notice the score on your `mine` is THEIRS, not yours. Your own score is never
+something your board writes -- it changes only when your partner admits they
+missed. Every number has exactly one board allowed to say it, which is what
+makes it safe when you both miss at the same instant. With two balls in play,
+that is a matter of time rather than a curiosity.
 
 One last thing, and it is why all of this fits in a frame: **all of it goes in
 one trip.** Sending is the expensive part of a loop, and it costs about the
@@ -56,7 +69,6 @@ import screen
 
 mine_kind = "mine"
 over_kind = "over"
-lost_kind = "lost"
 wait_kind = "wait"
 
 ball_count = 2
@@ -71,7 +83,7 @@ my_color = colors.JADE
 their_color = colors.MAGENTA
 
 my_id = interactions.join_wifi(show_id=False)
-partner_kinds = [mine_kind, over_kind, lost_kind, wait_kind]
+partner_kinds = [mine_kind, over_kind, wait_kind]
 partner_id = interactions.tap_to_pair(partner_kinds)
 
 screen_center_x = screen.WIDTH // 2
@@ -236,23 +248,21 @@ def listen_to_our_partner():
         ball = balls[int(msg[2])]
         screen.timer_reset(ball.timer)
 
-        if msg[0] == mine_kind and len(msg) == 6:
-            # They have it. If we were still handing it over, that is them
-            # answering us, and we can stop saying it.
+        if msg[0] == mine_kind and len(msg) == 7:
+            # Our score is theirs to say, and never ours. They say it on every
+            # message they send, so one going missing costs nothing: the next
+            # one says the same thing. Only act when the number is news.
+            if int(msg[3]) != my_score:
+                my_score = int(msg[3])
+                show_the_score()
+
+            # They have this ball. If we were still handing it over, that is
+            # them answering us, and we can stop saying it.
             if ball.state != mine_kind:
                 ball.let_go(wait_kind)
         elif msg[0] == over_kind and len(msg) == 7:
             if ball.state != mine_kind:
                 ball.take_from(msg, 3)
-        elif msg[0] == lost_kind and len(msg) == 8:
-            # They missed. Our score is theirs to say, and never ours. This
-            # message keeps arriving until we answer it, so only act on it when
-            # the number is actually news.
-            if int(msg[3]) != my_score:
-                my_score = int(msg[3])
-                show_the_score()
-            if ball.state != mine_kind:
-                ball.take_from(msg, 4)
 
 
 def play_the_ball(ball, tilt_x):
@@ -273,10 +283,11 @@ def play_the_ball(ball, tilt_x):
 
     elif ball.y > screen.HEIGHT:
         # Past the paddle. Since we know it, we're going to say it and serve.
+        # We keep the ball: you watch it come back at your own end and set off
+        # towards your partner, instead of vanishing onto their panel.
         their_score = their_score + 1
         show_the_score()
         ball.serve()
-        ball.let_go(lost_kind)
         print(f"missed ball {ball.number}")
 
     elif ball.y < -ball_size:
@@ -284,7 +295,7 @@ def play_the_ball(ball, tilt_x):
         ball.let_go(over_kind)
         print(f"ball {ball.number} goes over")
 
-    return f"{mine_kind} {my_id} {ball.number} {ball.x} {ball.y} {tilt_x}"
+    return f"{mine_kind} {my_id} {ball.number} {their_score} {ball.x} {ball.y} {tilt_x}"
 
 
 def what_we_have_to_say(tilt_x):
@@ -297,15 +308,6 @@ def what_we_have_to_say(tilt_x):
             x, y, speed_x, speed_y = ball.on_their_panel()
             saying.append(
                 f"{over_kind} {my_id} {ball.number} {x} {y} {speed_x} {speed_y}"
-            )
-        elif ball.state == lost_kind:
-            # We served it on our own panel, so it has to be turned round for
-            # them exactly like a ball going over the top -- which is what puts
-            # it at the top of their panel, falling towards their paddle.
-            x, y, speed_x, speed_y = ball.on_their_panel()
-            saying.append(
-                f"{lost_kind} {my_id} {ball.number} {their_score}"
-                f" {x} {y} {speed_x} {speed_y}"
             )
 
     if not saying:
@@ -392,7 +394,8 @@ while True:
 #   - Never admit you missed: when a ball goes past your paddle, serve it again
 #     on your own panel instead of letting go of it. Your partner's score never
 #     moves again.
-#   - Award yourself points: send a `lost` for a ball you actually hit.
+#   - Freeze your partner's score: send the same number in `mine` forever,
+#     whatever really happens. Then try sending a number that goes DOWN.
 #   - Now sit on the other side of it. Your partner's board believes every
 #     number you send and checks none of them. However,
 #     it hears where each ball is and how you are tilting, every frame

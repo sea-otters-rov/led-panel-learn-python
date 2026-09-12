@@ -452,13 +452,13 @@ restarts. Say so when adding one, instead of letting the next prompt reveal it.
                                 L205   the ball is yours: position and speed
                                        already converted to YOUR panel
         wait <id>               L205   I am waiting for the ball
-        mine <id> <ball> <x> <y> <tilt x>
-                                L206   I have this ball
+        mine <id> <ball> <your score> <x> <y> <tilt x>
+                                L206   I have this ball -- and your score is
+                                       this. The score rides on a message
+                                       already sent every frame rather than
+                                       having one of its own
         over <id> <ball> <x> <y> <sx> <sy>
                                 L206   this ball is going over to you
-        lost <id> <ball> <your score> <x> <y> <sx> <sy>
-                                L206   I missed it: your point, and the ball
-                                       back, served onto YOUR panel
 
   Every kind from L204 on puts the sender's id second. `tap_to_pair()` relies
   on that: an unpaired board resumes with whoever sends it any of the lesson's
@@ -952,11 +952,24 @@ lost. 206 is `L206_keeping_score`: **two balls, classes, and a score.** State
 moves off the board and onto the ball — each `Ball` owns its position, its
 speed, its state and its own named timer — because "what state is this board
 in?" stops having an answer once two balls are in play. The board that misses
-reports the point, since it is the only one that can see its own paddle, and
-**losing a point is a handoff**: `lost` carries the ball back AND the score, so
-the score inherits the repeat-until-answered machinery instead of needing its
-own. Verified 2026-09-12: 38 points, both panels agreed on every one, 0 balls
-lost, 0 partners dropped. 207 is not written.
+reports the point, since it is the only one that can see its own paddle -- and
+**it keeps the ball and serves it again from its own end**, so the player
+watches it come back and set off towards their partner instead of vanishing.
+That also makes the winner the one who has to catch it.
+
+**The ball is an event and the score is state, and 206 is built on the
+contrast.** A ball happens once, so a lost `over` loses it, so `over` repeats
+until the partner answers with `mine`. A score is simply true, so it rides on
+every `mine` and a lost one costs nothing -- the next says the same thing, and
+a board that fell behind catches up by itself. No acknowledgement, no retry,
+and no way for the panels to disagree permanently. The score on a `mine` is the
+RECEIVER's, so a board's own score is only ever written by its partner
+admitting a miss: one author per number, which is what keeps simultaneous
+misses safe, and two balls stop those being hypothetical.
+
+Verified 2026-09-12: 105 points over two minutes, both panels agreeing on every
+one, misses 41/42, 117 crossings, 0 balls lost, 0 partners dropped. 207 is not
+written.
 
 **Validation is now postponed to 207**, not 206. `CLAUDE.md` first planned the
 safe parse and range check for 205, then the notes moved it to 206; it is 207's

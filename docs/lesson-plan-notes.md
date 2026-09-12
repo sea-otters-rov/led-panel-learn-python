@@ -915,52 +915,72 @@ a class, but that call site reads well enough to pay for itself, and holding
 its own width made two 205 try-theses (aiming off the paddle, random serve
 angle) cheap enough to promote into the lesson.
 
-Four kinds, and three of them are new words:
+Three kinds, two of them new words:
 
-        mine <id> <ball> <x> <y> <tilt x>
+        mine <id> <ball> <your score> <x> <y> <tilt x>
         over <id> <ball> <x> <y> <sx> <sy>
-        lost <id> <ball> <your score> <x> <y> <sx> <sy>
         wait <id>                            (unchanged from 205)
 
 205's `have` and `give` could not be reused: a ball number is a new field, a
 new field is a new shape, and a new shape needs a new word. The lesson says
 that out loud rather than apologising for it.
 
-**Losing a point is a handoff.** You missed, so the ball goes back AND they
-score, and `lost` does both. The score therefore inherits the proven
-repeat-until-`mine` machinery -- no separate acknowledgement to design, and a
-point cannot go missing on its own.
+**When you miss, you keep the ball** and serve it again from your own end. The
+player watches it come back and set off towards their partner instead of
+vanishing and reappearing on the other panel -- and the winner is then the one
+who has to catch it, which is also the fairer rule. Only the news crosses over.
 
-**`lost` sends only ONE score: the receiver's.** A board's own score is never
+**The ball is an event; the score is state.** This is the spine of the lesson:
+
+        the ball   happens once. A lost message loses it, so `over` repeats
+                   until the partner answers with `mine`.
+        the score  is simply true. It rides on `mine`, which is being sent
+                   every frame anyway, so a lost one costs nothing: the next
+                   says the same thing, and a board that fell behind catches
+                   up by itself.
+
+A thing that is true does not need to be acknowledged -- no waiting, no
+retrying, and no way for two panels to disagree permanently. This is a better
+payoff than the design it replaced ("losing a point is a handoff", with a
+`lost` message carrying ball and score together), because it *earns* 205's
+repeat-until-answered machinery by putting something right next to it that
+explicitly does not need any.
+
+**The score on a `mine` is the RECEIVER's.** A board's own score is never
 something it writes; it changes only when the partner admits a miss. One author
-per number. The earlier single-ball version sent both scores, which was safe
-only because one ball means one board can miss at a time -- with two balls,
+per number. The first single-ball version sent both scores, which was safe only
+because one ball means one board can miss at a time -- with two balls,
 simultaneous misses have each board believe the other and discard its own
-point, and the panels disagree permanently. Latent bug in the old design,
-certain in the new one.
+point, and the panels disagree for good. Latent bug then, certain now.
 
 **One send a frame, whatever is going on.** `what_we_have_to_say()` builds a
 list and hands it to `network.send()` in one trip, which is why the two-ball
 version fits: ~22.5 ms/frame against ~31.7 for two separate sends. See the
 send-cost table in `CLAUDE.md`.
 
-Verified on both boards, paddles untouched:
+Verified on both boards, paddles untouched, two minutes of continuous play:
 
-        38 points, both panels agreed on every one (A 20-19, B 19-20)
-        misses 18 / 20 -- symmetric
+        105 points, both panels agreed on every one (A 52-53, B 53-52)
+        misses 41 / 42 -- symmetric
+        117 crossings -- balls rally rather than serve-and-miss
         0 balls went missing, 0 partners dropped
         one score print per board per point, no repeats
+
+The CROSSING count is the check that matters on the serve rule. An earlier
+version where the misser handed the ball over produced almost none, because
+every ball went straight to whoever was about to miss it again.
 
 Three bugs the first hardware run found, all in the game rules rather than the
 distributed part:
 
-- **The serve direction made the game unwinnable for one side.** A miss served
-  the ball onto the winner's panel *above their paddle heading away*, so the
-  winner never had to catch anything and every ball ended up falling towards
-  the loser, who missed again. 19-0, with the winner never once facing a ball.
-  A miss now drops it at the TOP of the winner's panel falling towards their
-  paddle -- the same way a ball arrives when it crosses over -- so winning a
-  point means having to play it.
+- **The serve direction made the game unwinnable for one side, twice, in
+  opposite directions.** First the misser served the ball onto the winner's
+  panel *above their paddle heading away*, so the winner never had to catch
+  anything and every ball fell towards the loser, who missed again: 19-0, the
+  winner never once facing a ball. Dropping it at the top of the winner's panel
+  instead fixed the fairness and was still wrong, because the misser never sees
+  the ball again. **The misser keeps it**, which is both the better picture and
+  the fair rule, since the winner then has to catch it.
 - **`show_the_score()` fired on every repeat of `lost`**, printing and
   redrawing 2-4 times per point. Harmless (that is the whole point of stating a
   value) but noisy in the console a student reads. It acts only on news now.
